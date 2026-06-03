@@ -1,0 +1,199 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id            String         @id @default(uuid())
+  name          String
+  username      String         @unique
+  email         String         @unique
+  password      String?
+  mobile        String?
+  avatar        String?
+  avatarId      String?
+  provider      AuthProvider   @default(local)
+  createdAt     DateTime       @default(now())
+  updatedAt     DateTime       @updatedAt
+  members       Member[]
+  notifications Notification[]
+  gitHubAccount GitHubAccount?
+}
+
+enum AuthProvider {
+  google
+  local
+}
+
+model Workspace {
+  id               String            @id @default(uuid())
+  name             String
+  description      String?
+  slug             String            @unique
+  logo             String?
+  logoId           String?
+  createdAt        DateTime          @default(now())
+  updatedAt        DateTime          @updatedAt
+  members          Member[]
+  projects         Project[]
+  workspaceInvites WorkspaceInvite[]
+  activities       Activity[]
+}
+
+model Member {
+  id String @id @default(uuid())
+
+  userId String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  workspaceId String
+  workspace   Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+
+  role      Role     @default(MEMBER)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  assignedIssues Issue[]    @relation("IssueAssignee")
+  createdIssues  Issue[]    @relation("IssueCreator")
+  activities     Activity[]
+
+  @@unique([userId, workspaceId])
+}
+
+enum Role {
+  OWNER
+  ADMIN
+  MEMBER
+}
+
+model Project {
+  id          String  @id @default(uuid())
+  name        String
+  slug        String
+  description String?
+  emoji       String?
+  emojiId     String?
+
+  workspaceId String
+  workspace   Workspace @relation(fields: [workspaceId], references: [id])
+
+  createdAt     DateTime       @default(now())
+  updatedAt     DateTime       @updatedAt
+  issues        Issue[]
+  projectGitHub ProjectGitHub?
+  activities    Activity[]
+
+  @@unique([workspaceId, name])
+  @@unique([workspaceId, slug])
+}
+
+model Issue {
+  id          String  @id @default(uuid())
+  title       String
+  description String?
+
+  status   IssueStatus @default(TODO)
+  priority Priority    @default(Medium)
+
+  assignedTo String
+  assignee   Member @relation("IssueAssignee", fields: [assignedTo], references: [id])
+
+  createdBy String
+  creator   Member @relation("IssueCreator", fields: [createdBy], references: [id])
+
+  projectId String
+  project   Project @relation(fields: [projectId], references: [id])
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+enum IssueStatus {
+  TODO
+  IN_PROGRESS
+  DONE
+}
+
+enum Priority {
+  Low
+  Medium
+  High
+}
+
+model WorkspaceInvite {
+  id    String @id @default(uuid())
+  email String
+
+  workspaceId String
+  workspace   Workspace @relation(fields: [workspaceId], references: [id])
+
+  token     String   @unique
+  role      Role     @default(MEMBER)
+  expiresAt DateTime
+  accepted  Boolean  @default(false)
+  createdAt DateTime @default(now())
+}
+
+model GitHubAccount {
+  id          String   @id @default(uuid())
+  userId      String   @unique
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  accessToken String // GitHub OAuth token
+  githubId    String   @unique // GitHub user id
+  username    String // GitHub username
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+model ProjectGitHub {
+  id           String   @id @default(uuid())
+  projectId    String   @unique
+  project      Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  repoFullName String // "owner/repo"
+  repoId       String // GitHub repo id
+  webhookId    String? // GitHub webhook id
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+}
+
+model Notification {
+  id        String           @id @default(uuid())
+  userId    String
+  user      User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+  type      NotificationType
+  message   String
+  read      Boolean          @default(false)
+  metadata  Json?
+  createdAt DateTime         @default(now())
+}
+
+enum NotificationType {
+  ISSUE_ASSIGNED
+  ISSUE_UPDATED
+  PR_OPENED
+  PR_MERGED
+  MEMBER_INVITED
+  MEMBER_JOINED
+}
+
+model Activity {
+  id String @id @default(uuid())
+
+  workspaceId String
+  workspace   Workspace @relation(fields: [workspaceId], references: [id])
+
+  projectId String?
+  project   Project? @relation(fields: [projectId], references: [id])
+
+  actorId String
+  actor   Member @relation(fields: [actorId], references: [id])
+
+  action   String
+  metadata Json?
+
+  createdAt DateTime @default(now())
+}

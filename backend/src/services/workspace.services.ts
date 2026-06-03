@@ -1,0 +1,277 @@
+import crypto from 'crypto';
+import { Prisma, Role } from '@prisma/client';
+import { CreateWorkspaceInput, UpdateWorkspaceInput } from "./../validations/worksapce.validations";
+import prisma from "../lib/prisma";
+import AppError from "../utils/AppError";
+import slugify from "slugify";
+import { uploadImageToCloudinary } from '../utils/cloudinaryHandler';
+import { sendInviteEmail } from '../utils/mailer';
+
+export async function createWorkspace(data: CreateWorkspaceInput, userId: string, file: Buffer | undefined) {
+
+  const slug = slugify(data.name, {
+    lower: true,
+    strict: true,
+    trim: true,
+  });
+
+  const existingWorkspace = await prisma.workspace.findUnique({ where: { slug } });
+  if (existingWorkspace) {
+    throw new AppError("Workspace already exist with this name", 409);
+  }
+
+  let logoUrl: string | undefined;
+  let logoPublicId: string | undefined;
+  if (file) {
+    const uploaded = await uploadImageToCloudinary(file);
+    logoUrl = uploaded.url;
+    logoPublicId = uploaded.publicId;
+  }
+
+  const workspace = await prisma.$transaction(async (tx) => {
+    const workspace = await tx.workspace.create({
+      data: {
+        name: data.name,
+        slug,
+        description: data.description,
+        logo: logoUrl,
+        logoId: logoPublicId
+      },
+    });
+
+    await tx.member.create({
+      data: {
+        userId,
+        workspaceId: workspace.id,
+        role: "OWNER",
+      },
+    });
+
+    return workspace;
+  });
+
+
+  return workspace;
+};
+
+
+export async function updateWorkspace(data: UpdateWorkspaceInput, workspaceId: string) {
+
+  const workspace = await prisma.workspace.findUnique({ where: { id: workspaceId } });
+
+  if (!workspace) {
+    throw new AppError("Workspace not found", 404);
+  }
+
+  const updatedData: Prisma.WorkspaceUpdateInput = {};
+
+  if (data.name !== undefined && data.name !== workspace.name) {
+    const newSlug = slugify(data.name, {
+      lower: true,
+      strict: true,
+      trim: true,
+    });
+
+    updatedData.name = data.name;
+    updatedData.slug = newSlug;
+  }
+
+  if (data.logo !== undefined) {
+    updatedData.logo = data.logo;
+  }
+
+  if (data.description !== undefined) {
+    updatedData.description = data.description;
+  }
+
+  if (Object.keys(updatedData).length === 0) {
+    return workspace;
+  }
+
+  try {
+    const updatedWorkspace = await prisma.workspace.update({
+      where: { id: workspaceId },
+      data: updatedData,
+    });
+
+    return updatedWorkspace;
+  } catch (error: unknown) {
+    if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === "P2002") {
+      throw new AppError("Workspace name already exists", 409);
+    }
+    throw error;
+  }
+};
+
+
+export async function getWorkspaces(userId: string) {
+
+  const memberships = await prisma.member.findMany({
+    where: { userId },
+    include: {
+      workspace: true
+    }
+  })
+
+  if (!memberships.length) {
+    throw new AppError("You are not part of any workspaces", 404)
+  }
+
+  const workspaces = memberships.map((m) => {
+    return {
+      id: m.workspace.id,
+      name: m.workspace.name,
+      description: m.workspace.description,
+      slug: m.workspace.slug,
+      role: m.role,
+      logo: m.workspace.logo
+    }
+  })
+
+  return workspaces
+};
+
+
+export async function getWorkspaceDetails(workspaceId: string) {
+
+  const workspace = await prisma.workspace.findUnique({
+    where: { id: workspaceId }
+  });
+
+  if (!workspace) {
+    throw new AppError("Workspace not found", 404);
+  }
+
+  return workspace
+};
+
+
+export async function deleteWorkspace(workspaceId: string) {
+
+  const workspace = await prisma.workspace.delete({ where: { id: workspaceId } })
+
+
+  // CASCADE DEKHNA HAI KAL 
+
+  // ONE DELETE EVRUTHING SHOULD BE DELETE 
+  // NO ORPHAN DATA
+
+
+};
+
+
+
+// ----------------Members of workspace---------------------
+export async function getMembersOfWorkspace(workspaceId: string) {
+
+  const members = await prisma.member.findMany({
+    where: { workspaceId },
+    include: {
+      user: {
+        select: {
+          id: true,
+          name: true,
+          email: true,
+          username: true,
+          avatar: true
+        }
+      }
+    }
+  })
+
+  return members
+};
+
+
+export async function inviteMember(workspaceId: string, email: string, role: Role) {
+  const workspace = await prisma.workspace.findUnique({
+    where: { id: workspaceId },
+  });
+  if (!workspace) throw new AppError("Workspace not found", 404);
+
+  //check if this user is already pat of this workspace 
+  const alreadyMember = await prisma.member.findFirst({
+    where: {
+      workspaceId,
+      user: { email },
+    },
+  });
+  if (alreadyMember) throw new AppError("User is already a member", 409);
+
+
+  // check if we alredy send the invite 
+  // only non-expired record  
+  const existingInvite = await prisma.workspaceInvite.findFirst({
+    where: { email, workspaceId, accepted: false, expiresAt: { gt: new Date() } },
+  });
+  if (existingInvite) throw new AppError("Invite already sent to this email", 409);
+
+  // Token generate
+  const token = crypto.randomBytes(32).toString("hex");
+  const expiresAt = new Date(Date.now() + 1000 * 60 * 60 * 48); // 48 hours
+
+  const invite = await prisma.workspaceInvite.create({
+    data: { email, workspaceId, role, token, expiresAt },
+  });
+
+  await sendInviteEmail({
+    to: email,
+    workspaceName: workspace.name,
+    token,
+  });
+
+  return invite;
+};
+
+
+export async function validateInviteToken(token: string) {
+  const invite = await prisma.workspaceInvite.findUnique({
+    where: { token },
+    include: { workspace: true },
+  });
+
+  if (!invite) throw new AppError("Invalid invite link", 404);
+  if (invite.accepted) throw new AppError("Invite already used", 400);
+  if (invite.expiresAt < new Date()) throw new AppError("Invite link expired", 400);
+
+  return invite;
+};
+
+
+export async function acceptWorkspaceInvite(token: string, userId: string) {
+  const invite = await validateInviteToken(token);
+
+  const user = await prisma.user.findUnique({ where: { id: userId } });
+  if (!user) throw new AppError("User not found", 404);
+
+  if (user.email !== invite.email) {
+    throw new AppError("This invite was sent to a different email", 403);
+  }
+
+  // Already member toh nahi hai — edge case
+  const alreadyMember = await prisma.member.findFirst({
+    where: { workspaceId: invite.workspaceId, user: { email: user.email } },
+  });
+  if (alreadyMember) throw new AppError("Already a member of this workspace", 409);
+
+  await prisma.$transaction(async (tx) => {
+    await tx.member.create({
+      data: {
+        userId,
+        workspaceId: invite.workspaceId,
+        role: invite.role,
+      },
+    });
+
+    await tx.workspaceInvite.update({
+      where: { token },
+      data: { accepted: true },
+    });
+  });
+
+  return invite.workspace;
+};
+
+
+
+

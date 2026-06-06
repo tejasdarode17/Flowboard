@@ -3,8 +3,9 @@ import type { ReactNode } from "react";
 import { Navigate, useLocation } from "react-router-dom";
 
 const ProtectedRoutes = ({ children }: { children: ReactNode }) => {
-  const location = useLocation();
   const { isAuthenticated } = useAppSelector((store) => store.auth);
+
+  const location = useLocation();
   const path = location.pathname;
 
   if (!isAuthenticated && !path.startsWith("/auth")) {

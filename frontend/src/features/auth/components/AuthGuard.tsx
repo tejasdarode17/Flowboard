@@ -3,7 +3,9 @@ import type { ReactNode } from "react";
 import { Navigate } from "react-router-dom";
 
 const AuthGuard = ({ children }: { children: ReactNode }) => {
-  const { isAuthenticated } = useAppSelector((store) => store.auth);
+  const { isAuthenticated, isLoading } = useAppSelector((store) => store.auth);
+
+  if (isLoading) return null;
 
   if (isAuthenticated) return <Navigate to="/" replace />;
   return <>{children}</>;

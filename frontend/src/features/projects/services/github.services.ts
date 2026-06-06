@@ -1,13 +1,13 @@
 import api from "@/api/axiosInstance";
-import type { LinkRepositoryPayload } from "../types/github.types";
+import type { LinkRepositoryParams } from "../types/github.types";
 
 export const getGithubRepositoriesApi = async () => {
-    const { data } = await api.get("/api/github/repos");
-    return data.data;
+    const { data: response } = await api.get("/api/github/repos");
+    return response.data
 };
 
-
-export const linkRepositoryApi = async (payload: LinkRepositoryPayload,) => {
-    const { data } = await api.post("/api/github/link-repo", payload,);
-    return data.data;
+export const linkRepositoryApi = async ({ workspaceSlug, data }: LinkRepositoryParams) => {
+    const { data: response } = await api.post(`/api/github/link-repo/${workspaceSlug}`, data,);
+    return response.data
 };
+

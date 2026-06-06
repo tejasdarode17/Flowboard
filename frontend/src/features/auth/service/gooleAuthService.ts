@@ -1,5 +1,8 @@
 import api from "@/api/axiosInstance";
 
-export const googleOAuth = async (googleToken: string) => {
-    return api.post("/api/auth/google/login", { googleToken });
+export const googleOAuthApi = async (googleToken: string) => {
+    const response = await api.post("/api/auth/google/login", { googleToken });
+    console.log(response);
+    
+    return response
 };

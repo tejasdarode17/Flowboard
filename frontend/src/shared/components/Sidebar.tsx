@@ -12,10 +12,11 @@ import DarkMode from "@/shared/components/DarkMode";
 import axios from "axios";
 import { clearUser } from "@/redux/authSlice";
 import { useAppDispatch } from "../hooks/useAppDispatch";
+import MemberBadge from "@/features/workspace/components/MemberBadge";
 
 const Sidebar = () => {
   return (
-    <aside className="min-h-screen w-70 flex flex-col border-r border-border/40 bg-sidebar/50 backdrop-blur-sm">
+    <aside className="min-h-screen hidden w-70 lg:flex flex-col border-r border-border/40 bg-sidebar/50 backdrop-blur-sm">
       <SideBarContent />
     </aside>
   );
@@ -27,6 +28,8 @@ export const SideBarContent = () => {
   const { userData } = useAppSelector((store) => store?.auth);
   const [open, setOpen] = useState<boolean>(false);
   const [workspaceMenuOpen, setWorkspaceMenuOpen] = useState(false);
+
+  const [logoutLoading, setLogoutLoading] = useState<boolean>(false);
 
   const { workspaceSlug } = useParams();
   const { data: workspaces, isLoading } = useWorkspaces();
@@ -67,12 +70,14 @@ export const SideBarContent = () => {
 
   async function handleLogout() {
     try {
-      console.log("called");
+      setLogoutLoading(true);
       await axios.post(`${import.meta.env.VITE_BACKEND_URL}/api/auth/logout`, {}, { withCredentials: true });
       dispatch(clearUser());
       navigate("/auth");
     } catch (error) {
       console.log(error);
+    } finally {
+      setLogoutLoading(false);
     }
   }
 
@@ -205,10 +210,7 @@ export const SideBarContent = () => {
 
         {/* User section */}
         <div className="px-2">
-          <button
-            onClick={() => navigate("/")}
-            className="w-full flex items-center gap-2.5 px-3 py-2 rounded-lg hover:bg-accent/50 transition-all duration-150 group"
-          >
+          <button className="w-full flex items-center gap-2.5 px-3 py-2 rounded-lg hover:bg-accent/50 transition-all duration-150 group">
             <Avatar className="h-7 w-7 rounded-lg border border-border/50">
               <AvatarImage src={userData?.avatar ?? ""} />
               <AvatarFallback className="bg-accent text-[11px] font-semibold rounded-lg">
@@ -217,14 +219,27 @@ export const SideBarContent = () => {
             </Avatar>
             <div className="flex-1 min-w-0 text-left">
               <p className="text-[13px] font-medium truncate">{userData?.name}</p>
-              {/* <p className="text-[11px] text-muted-foreground/60">Upgrade</p> */}
+              <p className="text-[11px] text-muted-foreground/60">
+                <MemberBadge role={currentWorkspace?.role ?? "MEMBER"}></MemberBadge>
+              </p>
             </div>
-            <LogOut
-              size={14}
-              className="text-muted-foreground/40 opacity-0 group-hover:opacity-100 transition-all duration-150"
-              onClick={() => handleLogout()}
-            />
           </button>
+
+          <Button
+            variant="ghost"
+            onClick={() => handleLogout()}
+            disabled={logoutLoading}
+            className="mt-2 w-full justify-start gap-2.5 px-3 h-9 rounded-lg text-[13px] text-muted-foreground hover:text-foreground hover:bg-accent/50"
+          >
+            {logoutLoading ? (
+              <Loader2 className="animate-spin"></Loader2>
+            ) : (
+              <>
+                <LogOut size={14} />
+                Sign out
+              </>
+            )}
+          </Button>
         </div>
       </div>
     </div>

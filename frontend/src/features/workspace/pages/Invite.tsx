@@ -11,6 +11,7 @@ import { useState } from "react";
 import { acceptInviteApi, validateInviteTokenApi } from "../services/workspace.services";
 import { clearUser } from "@/redux/authSlice";
 import FlowBoardLogo from "@/shared/icons/FlowBoardLogo";
+import ErrorMessage from "@/shared/components/ErrorMessage";
 
 const Invite = () => {
   const { token } = useParams();
@@ -131,13 +132,7 @@ const Invite = () => {
               </div>
             </div>
 
-            {/* Error message */}
-            {errors.error && (
-              <div className="mt-4 flex items-start gap-2.5 px-3 py-2.5 rounded-xl bg-red-500/5 border border-red-500/20">
-                <AlertCircle size={14} className="text-red-500 mt-0.5 shrink-0" />
-                <p className="text-[12px] text-red-600 dark:text-red-400">{errors.error}</p>
-              </div>
-            )}
+            {errors.error && <ErrorMessage error={errors.error}></ErrorMessage>}
 
             {/* Actions */}
             <div className="mt-6 space-y-3">
@@ -166,13 +161,13 @@ const Invite = () => {
                         </p>
                       </div>
 
-                      <Button variant="outline" className="w-full rounded-xl h-10 gap-2" onClick={handleSwitchAccount}>
+                      <Button variant="outline" className="w-full rounded-xl pt-2 h-10 gap-2" onClick={handleSwitchAccount}>
                         <LogOut size={15} />
                         Switch account & Join
                       </Button>
                     </div>
                   ) : (
-                    <Button className="w-full rounded-xl h-10 gap-2" disabled={isPending} onClick={() => acceptInvite()}>
+                    <Button variant="outline" className="w-full pt-2 rounded-xl h-10 gap-2" disabled={isPending} onClick={() => acceptInvite()}>
                       {isPending ? (
                         <>
                           <Loader2 size={15} className="animate-spin" />
@@ -227,5 +222,3 @@ const Invite = () => {
 };
 
 export default Invite;
-
-

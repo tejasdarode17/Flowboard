@@ -2,6 +2,7 @@ import axios from "axios";
 import prisma from "../lib/prisma";
 import AppError from "../utils/AppError";
 import { verifyGitHubState } from "../utils/jwt";
+import { extractGitHubUsername, } from "../utils/githubUtils";
 
 export function getGitHubAuthUrl(state: string) {
     const params = new URLSearchParams({
@@ -12,18 +13,6 @@ export function getGitHubAuthUrl(state: string) {
     });
 
     return `https://github.com/login/oauth/authorize?${params.toString()}`;
-}
-
-
-export async function getGitHubProfile(accessToken: string) {
-    const response = await axios.get("https://api.github.com/user",
-        {
-            headers: {
-                Authorization: `Bearer ${accessToken}`,
-            },
-        }
-    );
-    return response.data;
 }
 
 
@@ -54,7 +43,7 @@ export async function handleGitHubCallback(code: string, state: string) {
 
     const githubUser = await axios.get("https://api.github.com/user", {
         headers: {
-            Authorization: `token ${accessToken}`,
+            Authorization: `Bearer ${accessToken}`,
             Accept: "application/vnd.github+json",
         },
     });
@@ -81,10 +70,9 @@ export async function handleGitHubCallback(code: string, state: string) {
 
 
 export async function getGitHubRepositories(userId: string) {
+
     const githubAccount = await prisma.gitHubAccount.findUnique({
-        where: {
-            userId,
-        },
+        where: { userId, },
     });
 
     if (!githubAccount) {
@@ -111,7 +99,64 @@ export async function getGitHubRepositories(userId: string) {
 }
 
 
-export async function linkRepositoryToProject(projectId: string, repoId: string, repoFullName: string) {
+//this service used in linkRepositoryToProject not in controller
+export async function getExistingGitHubWebhook(accessToken: string, repoFullName: string) {
+
+    const [owner, repo] = repoFullName.split("/");
+    const response = await axios.get(`https://api.github.com/repos/${owner}/${repo}/hooks`,
+        {
+            headers: {
+                Authorization: `Bearer ${accessToken}`,
+                Accept: "application/vnd.github+json",
+            },
+        }
+    );
+
+    const hooks = response.data;
+
+    const existingWebhook = hooks.find(
+        (hook: any) =>
+            hook.config?.url === `${process.env.BACKEND_URL}/api/github/webhook`
+    );
+
+    return existingWebhook;
+}
+
+//this service used in linkRepositoryToProject not in controller
+export async function createGitHubWebhook(accessToken: string, repoFullName: string) {
+
+    const existingWebhook = await getExistingGitHubWebhook(accessToken, repoFullName);
+
+    if (existingWebhook) {
+        return existingWebhook;
+    }
+
+    const [owner, repo] = repoFullName.split("/");
+
+    const response = await axios.post(`https://api.github.com/repos/${owner}/${repo}/hooks`,
+        {
+            name: "web",
+            active: true,
+            events: ["push", "pull_request"],
+            config: {
+                url: `${process.env.BACKEND_URL}/api/github/webhook`,
+                content_type: "json",
+                secret: process.env.GITHUB_WEBHOOK_SECRET,
+            },
+        },
+        {
+            headers: {
+                Authorization: `Bearer ${accessToken}`,
+                Accept: "application/vnd.github+json",
+            },
+        }
+    );
+
+    return response.data;
+}
+
+
+export async function linkRepositoryToProject(projectId: string, repoId: string, repoFullName: string, userId: string) {
 
     const project = await prisma.project.findUnique({
         where: { id: projectId },
@@ -122,23 +167,102 @@ export async function linkRepositoryToProject(projectId: string, repoId: string,
     }
 
     const existingLink = await prisma.projectGitHub.findUnique({
-        where: {
-            projectId,
-        },
+        where: { projectId },
     });
 
     if (existingLink) {
         throw new AppError("Repository already linked to this project", 400);
     }
 
-    const projectGithub = prisma.projectGitHub.create({
+    const githubAccount = await prisma.gitHubAccount.findUnique({
+        where: { userId },
+    });
+
+    if (!githubAccount) {
+        throw new AppError("GitHub account not connected", 400);
+    }
+
+    const webhook = await createGitHubWebhook(
+        githubAccount.accessToken,
+        repoFullName
+    );
+
+    const projectGithub = await prisma.projectGitHub.create({
         data: {
             projectId,
             repoId,
             repoFullName,
+            webhookId: String(webhook.id),
         },
     });
 
-    return projectGithub
+    return projectGithub;
+}
+
+
+export async function processGitHubWebhook(event: string, payload: any) {
+    const repoFullName = payload.repository?.full_name;
+    if (!repoFullName) return;
+
+    const projectGithub = await prisma.projectGitHub.findFirst({
+        where: {
+            repoFullName,
+        },
+        include: {
+            project: true,
+        },
+    });
+
+    if (!projectGithub) return;
+
+    const username = extractGitHubUsername(payload, event);
+
+    if (!username) return;
+
+    const githubAccount = await prisma.gitHubAccount.findFirst({
+        where: { username },
+    });
+
+    if (!githubAccount) return;
+
+    const member = await prisma.member.findFirst({
+        where: {
+            userId: githubAccount.userId,
+            workspaceId: projectGithub.project.workspaceId,
+        },
+    });
+
+    if (!member) return;
+
+    if (event === "push") {
+        await prisma.activity.create({
+            data: {
+                workspaceId: projectGithub.project.workspaceId,
+                projectId: projectGithub.projectId,
+                actorId: member.id,
+                action: "PUSH",
+                metadata: payload,
+            },
+        });
+    }
+
+    if (event === "pull_request") {
+        await prisma.activity.create({
+            data: {
+                workspaceId: projectGithub.project.workspaceId,
+                projectId: projectGithub.projectId,
+                actorId: member.id,
+                action: `PR_${payload.action.toUpperCase()}`,
+                metadata: payload.pull_request,
+            },
+        });
+    }
+
+
+
+
+
+
 
 }
+

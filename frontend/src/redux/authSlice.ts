@@ -5,7 +5,7 @@ import { createAsyncThunk, createSlice, type PayloadAction } from "@reduxjs/tool
 
 const initialState: AuthState = {
   isAuthenticated: false,
-  isLoading: false,
+  isLoading: true,
   userData: null,
   error: null,
 };
@@ -52,8 +52,8 @@ const authSlice = createSlice({
         state.error = null;
       })
       .addCase(checkAuth.rejected, (state, action) => {
-        state.isAuthenticated = false;
         state.userData = null;
+        state.isAuthenticated = false;
         state.isLoading = false;
         state.error = action.payload as string;
       });

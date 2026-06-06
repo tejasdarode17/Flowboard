@@ -14,7 +14,7 @@ type SendMailProps = {
 export async function sendMailFromResend({ to, subject, html, }: SendMailProps) {
     try {
         const response = await resend.emails.send({
-            from: "FlowBoard <onboarding@resend.dev>",
+            from: "FlowBoard <noreply@flowboard.space>",
             to,
             subject,
             html,

@@ -6,6 +6,7 @@ import CreateProject from "@/features/projects/components/CreateProject";
 import InviteMember from "@/features/workspace/components/InviteMember";
 import { useWorkspacesDetails } from "@/features/workspace/hooks/useWorkspaceDetails";
 import { useUserIssues } from "@/features/projects/hooks/useUserIssues";
+import MainLoder from "@/shared/components/MainLoder";
 
 const priorityConfig = {
   High: { color: "text-red-500", bg: "bg-red-500/10" },
@@ -27,9 +28,8 @@ const Dashboard = () => {
   const { data: myIssues, isLoading: issuesLoading } = useUserIssues(workspaceSlug!);
 
   if (workspaceLoading || projectsLoading || membersLoading) {
-    return <h1>Loading...</h1>;
+    return <MainLoder></MainLoder>;
   }
-
 
   const totalProjects = projects?.length || 0;
   const totalMembers = members?.length || 0;

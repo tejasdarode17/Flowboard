@@ -53,7 +53,7 @@ export function requireMemberRole(allowedRoles: Role[]) {
         }
 
         if (!allowedRoles.includes(member.role)) {
-            return next(new AppError("Access denied", 403));
+            return next(new AppError("You do not have permission to perform this action.", 403));
         }
 
         next()

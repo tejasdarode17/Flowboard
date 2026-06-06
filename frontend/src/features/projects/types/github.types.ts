@@ -6,9 +6,14 @@ export interface GitHubRepository {
     defaultBranch: string;
 }
 
-export interface LinkRepositoryPayload {
+interface LinkRepositoryInput {
     projectId: string;
     repoId: string;
     repoFullName: string;
+}
+
+export interface LinkRepositoryParams {
+    workspaceSlug: string
+    data: LinkRepositoryInput
 }
 

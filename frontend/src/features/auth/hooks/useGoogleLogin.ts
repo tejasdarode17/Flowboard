@@ -1,6 +1,6 @@
 import { useMutation } from '@tanstack/react-query';
 import googleAuth from '../config/firebase';
-import { googleOAuth } from '../service/gooleAuthService';
+import { googleOAuthApi } from '../service/gooleAuthService';
 
 export const useGoogleLogin = () => {
     return useMutation({
@@ -8,11 +8,10 @@ export const useGoogleLogin = () => {
             const result = await googleAuth()
             const token = await result?.user?.getIdToken();
             if (!token) throw new Error("Failed to get Google token")
-            return googleOAuth(token);
+            return googleOAuthApi(token);
         },
         onError: (error) => {
             throw error
         }
     })
 }
-

@@ -184,9 +184,11 @@ export async function getMembersOfWorkspace(workspaceId: string) {
 
 
 export async function inviteMember(workspaceId: string, email: string, role: Role) {
+
   const workspace = await prisma.workspace.findUnique({
     where: { id: workspaceId },
   });
+
   if (!workspace) throw new AppError("Workspace not found", 404);
 
   //check if this user is already pat of this workspace 
@@ -196,13 +198,18 @@ export async function inviteMember(workspaceId: string, email: string, role: Rol
       user: { email },
     },
   });
-  if (alreadyMember) throw new AppError("User is already a member", 409);
 
+  if (alreadyMember) throw new AppError("User is already a member", 409);
 
   // check if we alredy send the invite 
   // only non-expired record  
   const existingInvite = await prisma.workspaceInvite.findFirst({
-    where: { email, workspaceId, accepted: false, expiresAt: { gt: new Date() } },
+    where: {
+      email,
+      workspaceId,
+      accepted: false,
+      expiresAt: { gt: new Date() }
+    },
   });
   if (existingInvite) throw new AppError("Invite already sent to this email", 409);
 
@@ -225,6 +232,7 @@ export async function inviteMember(workspaceId: string, email: string, role: Rol
 
 
 export async function validateInviteToken(token: string) {
+
   const invite = await prisma.workspaceInvite.findUnique({
     where: { token },
     include: { workspace: true },

@@ -7,3 +7,5 @@ export const linkRepositorySchema = z.object({
 });
 
 
+export type LinkRepositoryInput = z.infer<typeof linkRepositorySchema>;
+

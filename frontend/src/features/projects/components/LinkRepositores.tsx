@@ -1,35 +1,52 @@
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
-import { Loader2 } from "lucide-react";
+import { Link, Loader2 } from "lucide-react";
 import { useGithubRepositories } from "../hooks/useGithubRepositories";
 import { useLinkRepository } from "../hooks/useLinkRepositories";
 import { useParams } from "react-router-dom";
 import type { GitHubRepository } from "../types/github.types";
+import { apiErrors } from "@/shared/utils/errorHandler";
+import { useState } from "react";
 
-interface Props {
+interface LinkRepositoresProps {
   projectId: string;
 }
 
-const LinkRepository = ({ projectId }: Props) => {
+const LinkRepository = ({ projectId }: LinkRepositoresProps) => {
+  const [open, setOpen] = useState(false);
   const { workspaceSlug } = useParams();
-
   const { data: repos, isLoading } = useGithubRepositories();
+
   const { mutateAsync, isPending } = useLinkRepository(workspaceSlug!, projectId!);
 
-  console.log(repos);
-
   async function handleLinkRepo(repoId: string, repoFullName: string) {
-    await mutateAsync({
-      projectId,
-      repoId,
-      repoFullName,
-    });
+    try {
+      const data = {
+        repoId,
+        repoFullName,
+        projectId,
+      };
+      await mutateAsync({
+        data,
+        workspaceSlug: workspaceSlug || "",
+      });
+      setOpen(false);
+    } catch (error) {
+      console.log(error);
+
+      const err = apiErrors(error);
+      console.log(err);
+      alert(err.error);
+    }
   }
 
   return (
-    <Dialog>
+    <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
-        <Button variant="outline">Link Repository</Button>
+        <Button variant="outline">
+          <Link></Link>
+          Link Repository
+        </Button>
       </DialogTrigger>
 
       <DialogContent>
@@ -38,7 +55,7 @@ const LinkRepository = ({ projectId }: Props) => {
         </DialogHeader>
 
         {isLoading ? (
-          <Loader2 className="animate-spin" />
+          <Loader2 className="w-full flex justify-center items-center animate-spin" />
         ) : (
           <div className="space-y-2">
             {repos?.map((repo: GitHubRepository) => (

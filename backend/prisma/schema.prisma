@@ -160,6 +160,24 @@ model ProjectGitHub {
   updatedAt    DateTime @updatedAt
 }
 
+model Activity {
+  id String @id @default(uuid())
+
+  workspaceId String
+  workspace   Workspace @relation(fields: [workspaceId], references: [id])
+
+  projectId String?
+  project   Project? @relation(fields: [projectId], references: [id])
+
+  actorId String
+  actor   Member @relation(fields: [actorId], references: [id])
+
+  action   String
+  metadata Json?
+
+  createdAt DateTime @default(now())
+}
+
 model Notification {
   id        String           @id @default(uuid())
   userId    String
@@ -178,22 +196,4 @@ enum NotificationType {
   PR_MERGED
   MEMBER_INVITED
   MEMBER_JOINED
-}
-
-model Activity {
-  id String @id @default(uuid())
-
-  workspaceId String
-  workspace   Workspace @relation(fields: [workspaceId], references: [id])
-
-  projectId String?
-  project   Project? @relation(fields: [projectId], references: [id])
-
-  actorId String
-  actor   Member @relation(fields: [actorId], references: [id])
-
-  action   String
-  metadata Json?
-
-  createdAt DateTime @default(now())
 }

@@ -37,9 +37,7 @@ const CreateWorkspacePage = () => {
 
       {/* welcome */}
       <div className="text-center max-w-lg mb-12">
-        <h1 className="font-syne text-3xl font-bold tracking-tight text-foreground">
-          Welcome, {userData?.name?.split(" ")[0]} 👋
-        </h1>
+        <h1 className="font-syne text-3xl font-bold tracking-tight text-foreground">Welcome, {userData?.name?.split(" ")[0]} 👋</h1>
         <p className="mt-3 text-sm text-muted-foreground leading-relaxed">
           FlowBoard helps your team manage projects, track issues, and ship faster. Start by creating your first workspace.
         </p>

@@ -9,8 +9,10 @@ const Settings = () => {
   const { workspaceSlug } = useParams();
 
   const { userData } = useAppSelector((store) => store.auth);
-  const isGitHubConnected = !!userData?.gitHubAccount;
 
+  const isGitHubConnected = Boolean(userData?.gitHubAccount);
+
+  
   const { mutateAsync, isPending } = useGithubConnect(workspaceSlug!);
 
   async function handleConnectGitHub() {
@@ -23,7 +25,7 @@ const Settings = () => {
       alert(err.error);
     }
   }
-  
+
   return (
     <div className="space-y-6 p-6">
       <div>

@@ -9,6 +9,7 @@ import { inviteMemberToWorkspace } from "../services/workspace.services";
 import { useParams } from "react-router-dom";
 import { apiErrors, zodErrors } from "@/shared/utils/errorHandler";
 import { inviteMemberSchema, type InviteWorksapceInput } from "../validations/workspace.validations";
+import ErrorMessage from "@/shared/components/ErrorMessage";
 
 const InviteMember = () => {
   const { workspaceSlug } = useParams();
@@ -59,8 +60,12 @@ const InviteMember = () => {
         <div className="space-y-4 pt-4">
           {/* Email */}
           <div className="space-y-2">
-            <label className="text-[13px] font-medium">Email address</label>
+            <label id="email" className="text-[13px] font-medium">
+              Email address
+            </label>
             <Input
+              id="email"
+              name="email"
               placeholder="colleague@company.com"
               className="rounded-xl h-10 bg-muted/50 border-border/40"
               value={email}
@@ -86,7 +91,7 @@ const InviteMember = () => {
           </div>
 
           {/* Error */}
-          {errors && <p className="text-xs text-destructive">{errors.error}</p>}
+          {errors && <ErrorMessage error={errors.error}></ErrorMessage>}
 
           <Button variant="outline" disabled={isPending || !email} onClick={handleInvite} className="w-full rounded-xl h-10">
             {isPending ? <Loader2 size={14} className="animate-spin" /> : "Send invitation"}

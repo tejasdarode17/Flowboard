@@ -6,7 +6,7 @@ import admin from "../config/firebase";
 import { generateAccessToken, generateRefreshToken } from "../utils/jwt";
 
 
-const isProduction = process.env.NODE_ENV === "produ  ction";
+const isProduction = process.env.NODE_ENV === "production";
 
 export async function register(req: Request, res: Response, next: NextFunction) {
   try {

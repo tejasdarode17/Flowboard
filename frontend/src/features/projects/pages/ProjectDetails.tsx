@@ -85,8 +85,19 @@ const ProjectDetails = () => {
           </div>
         </div>
 
-        <LinkRepository projectId={projectId!} />
-        <CreateIssue />
+        <div className="flex gap-2">
+          {project?.projectGitHub ? (
+            <div className="rounded-lg border px-3 py-2">
+              <p className="text-sm text-muted-foreground">Linked Repository</p>
+
+              <p className="font-medium">{project.projectGitHub.repoFullName}</p>
+            </div>
+          ) : (
+            <LinkRepository projectId={projectId!} />
+          )}
+
+          <CreateIssue />
+        </div>
       </div>
 
       {/* Stats */}

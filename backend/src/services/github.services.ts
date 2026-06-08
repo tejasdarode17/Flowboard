@@ -2,9 +2,13 @@ import axios from "axios";
 import prisma from "../lib/prisma";
 import AppError from "../utils/AppError";
 import { verifyGitHubState } from "../utils/jwt";
-import { extractGitHubUsername, } from "../utils/githubUtils";
+import { GithubEvent, GithubWebhookPayload, } from "../types/githubWebhook.types";
+import { IssueCommentEvent, IssuesEvent, PullRequestEvent, PushEvent } from "@octokit/webhooks-types";
+import { extractGithubUsername } from "../utils/githubUtils";
+import { Prisma } from "@prisma/client";
+import { createActivity } from "./activites.services";
 
-export function getGitHubAuthUrl(state: string) {
+export function getGithubAuthUrl(state: string) {
     const params = new URLSearchParams({
         client_id: process.env.GITHUB_CLIENT_ID!,
         redirect_uri: process.env.GITHUB_CALLBACK_URL!,
@@ -16,7 +20,7 @@ export function getGitHubAuthUrl(state: string) {
 }
 
 
-export async function handleGitHubCallback(code: string, state: string) {
+export async function handleGithubCallback(code: string, state: string) {
 
     const { userId, workspaceSlug } = verifyGitHubState(state);
 
@@ -34,7 +38,7 @@ export async function handleGitHubCallback(code: string, state: string) {
             },
         }
     );
-
+    
     const accessToken = tokenResponse.data.access_token;
 
     if (!accessToken) {
@@ -50,7 +54,7 @@ export async function handleGitHubCallback(code: string, state: string) {
 
     const data = githubUser.data;
 
-    const account = await prisma.gitHubAccount.upsert({
+    const account = await prisma.githubAccount.upsert({
         where: { userId },
         update: {
             accessToken,
@@ -69,9 +73,9 @@ export async function handleGitHubCallback(code: string, state: string) {
 }
 
 
-export async function getGitHubRepositories(userId: string) {
+export async function getGithubRepositories(userId: string) {
 
-    const githubAccount = await prisma.gitHubAccount.findUnique({
+    const githubAccount = await prisma.githubAccount.findUnique({
         where: { userId, },
     });
 
@@ -100,7 +104,7 @@ export async function getGitHubRepositories(userId: string) {
 
 
 //this service used in linkRepositoryToProject not in controller
-export async function getExistingGitHubWebhook(accessToken: string, repoFullName: string) {
+export async function getExistingGithubWebhook(accessToken: string, repoFullName: string) {
 
     const [owner, repo] = repoFullName.split("/");
     const response = await axios.get(`https://api.github.com/repos/${owner}/${repo}/hooks`,
@@ -114,18 +118,15 @@ export async function getExistingGitHubWebhook(accessToken: string, repoFullName
 
     const hooks = response.data;
 
-    const existingWebhook = hooks.find(
-        (hook: any) =>
-            hook.config?.url === `${process.env.BACKEND_URL}/api/github/webhook`
-    );
+    const existingWebhook = hooks.find((hook: any) => hook.config?.url === `${process.env.BACKEND_URL}/api/github/webhook`);
 
     return existingWebhook;
 }
 
 //this service used in linkRepositoryToProject not in controller
-export async function createGitHubWebhook(accessToken: string, repoFullName: string) {
+export async function createGithubWebhook(accessToken: string, repoFullName: string) {
 
-    const existingWebhook = await getExistingGitHubWebhook(accessToken, repoFullName);
+    const existingWebhook = await getExistingGithubWebhook(accessToken, repoFullName);
 
     if (existingWebhook) {
         return existingWebhook;
@@ -166,7 +167,7 @@ export async function linkRepositoryToProject(projectId: string, repoId: string,
         throw new AppError("Project not found", 404);
     }
 
-    const existingLink = await prisma.projectGitHub.findUnique({
+    const existingLink = await prisma.projectGithub.findUnique({
         where: { projectId },
     });
 
@@ -174,7 +175,7 @@ export async function linkRepositoryToProject(projectId: string, repoId: string,
         throw new AppError("Repository already linked to this project", 400);
     }
 
-    const githubAccount = await prisma.gitHubAccount.findUnique({
+    const githubAccount = await prisma.githubAccount.findUnique({
         where: { userId },
     });
 
@@ -182,12 +183,12 @@ export async function linkRepositoryToProject(projectId: string, repoId: string,
         throw new AppError("GitHub account not connected", 400);
     }
 
-    const webhook = await createGitHubWebhook(
+    const webhook = await createGithubWebhook(
         githubAccount.accessToken,
         repoFullName
     );
 
-    const projectGithub = await prisma.projectGitHub.create({
+    const projectGithub = await prisma.projectGithub.create({
         data: {
             projectId,
             repoId,
@@ -200,11 +201,11 @@ export async function linkRepositoryToProject(projectId: string, repoId: string,
 }
 
 
-export async function processGitHubWebhook(event: string, payload: any) {
-    const repoFullName = payload.repository?.full_name;
-    if (!repoFullName) return;
 
-    const projectGithub = await prisma.projectGitHub.findFirst({
+export async function processGitHubWebhook(event: GithubEvent, payload: GithubWebhookPayload) {
+    const repoFullName = payload.repository.full_name;
+
+    const projectGithub = await prisma.projectGithub.findFirst({
         where: {
             repoFullName,
         },
@@ -215,12 +216,14 @@ export async function processGitHubWebhook(event: string, payload: any) {
 
     if (!projectGithub) return;
 
-    const username = extractGitHubUsername(payload, event);
+    const username = extractGithubUsername(payload, event);
 
     if (!username) return;
 
-    const githubAccount = await prisma.gitHubAccount.findFirst({
-        where: { username },
+    const githubAccount = await prisma.githubAccount.findFirst({
+        where: {
+            username,
+        },
     });
 
     if (!githubAccount) return;
@@ -234,35 +237,147 @@ export async function processGitHubWebhook(event: string, payload: any) {
 
     if (!member) return;
 
+    // ==================================
+    // PUSH
+    // ==================================
+
     if (event === "push") {
-        await prisma.activity.create({
-            data: {
-                workspaceId: projectGithub.project.workspaceId,
-                projectId: projectGithub.projectId,
-                actorId: member.id,
-                action: "PUSH",
-                metadata: payload,
+        const pushPayload = payload as PushEvent;
+
+        await createActivity({
+            workspaceId: projectGithub.project.workspaceId,
+            projectId: projectGithub.projectId,
+            actorId: member.id,
+
+            action: "PUSH",
+
+            entityType: "BRANCH",
+            entityId: pushPayload.ref,
+            entityName: pushPayload.ref.replace("refs/heads/", ""),
+
+            targetType: "PROJECT",
+            targetId: projectGithub.project.id,
+            targetName: projectGithub.project.name,
+
+            metadata: {
+                repository: pushPayload.repository.full_name,
+                commitCount: pushPayload.commits.length,
+                commitMessage: pushPayload.head_commit?.message,
             },
         });
+
+        return;
     }
+
+    // ==================================
+    // PULL REQUEST
+    // ==================================
 
     if (event === "pull_request") {
-        await prisma.activity.create({
-            data: {
-                workspaceId: projectGithub.project.workspaceId,
-                projectId: projectGithub.projectId,
-                actorId: member.id,
-                action: `PR_${payload.action.toUpperCase()}`,
-                metadata: payload.pull_request,
+        const prPayload = payload as PullRequestEvent;
+
+        const actionMap: Record<string, string> = {
+            opened: "PR_OPENED",
+            closed: prPayload.pull_request.merged
+                ? "PR_MERGED"
+                : "PR_CLOSED",
+            reopened: "PR_REOPENED",
+        };
+
+        const activityAction =
+            actionMap[prPayload.action];
+
+        if (!activityAction) return;
+
+        await createActivity({
+            workspaceId: projectGithub.project.workspaceId,
+            projectId: projectGithub.projectId,
+            actorId: member.id,
+
+            action: activityAction,
+
+            entityType: "PULL_REQUEST",
+            entityId: String(prPayload.number),
+            entityName: prPayload.pull_request.title,
+
+            targetType: "PROJECT",
+            targetId: projectGithub.project.id,
+            targetName: projectGithub.project.name,
+
+            metadata: {
+                number: prPayload.number,
+                url: prPayload.pull_request.html_url,
             },
         });
+
+        return;
     }
 
+    // ==================================
+    // ISSUE
+    // ==================================
 
+    if (event === "issues") {
+        const issuePayload = payload as IssuesEvent;
 
+        const actionMap: Record<string, string> = {
+            opened: "ISSUE_CREATED",
+            closed: "ISSUE_COMPLETED",
+            reopened: "ISSUE_REOPENED",
+        };
 
+        const activityAction =
+            actionMap[issuePayload.action];
 
+        if (!activityAction) return;
 
+        await createActivity({
+            workspaceId: projectGithub.project.workspaceId,
+            projectId: projectGithub.projectId,
+            actorId: member.id,
 
+            action: activityAction,
+
+            entityType: "ISSUE",
+            entityId: String(issuePayload.issue.number),
+            entityName: issuePayload.issue.title,
+
+            targetType: "PROJECT",
+            targetId: projectGithub.project.id,
+            targetName: projectGithub.project.name,
+        });
+
+        return;
+    }
+
+    // ==================================
+    // ISSUE COMMENT
+    // ==================================
+
+    if (event === "issue_comment") {
+        
+        const commentPayload = payload as IssueCommentEvent;
+
+        if (commentPayload.action !== "created") {
+            return;
+        }
+
+        await createActivity({
+            workspaceId: projectGithub.project.workspaceId,
+            projectId: projectGithub.projectId,
+            actorId: member.id,
+
+            action: "COMMENT_ADDED",
+
+            entityType: "ISSUE",
+            entityId: String(commentPayload.issue.number),
+            entityName: commentPayload.issue.title,
+
+            targetType: "PROJECT",
+            targetId: projectGithub.project.id,
+            targetName: projectGithub.project.name,
+        });
+
+        return;
+    }
 }
-

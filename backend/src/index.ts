@@ -9,6 +9,7 @@ import projectRoutes from "./routes/project.routes"
 import issueRoutes from "./routes/issues.routes"
 import githubRoutes from "./routes/github.routes"
 import webhooksRoutes from "./routes/webhook.routes"
+import activityRoutes from "./routes/activities.routes";
 import errorMiddleware from "./middlewares/error.middleware";
 import cloudinaryConfig from './lib/cloudinary';
 
@@ -16,17 +17,16 @@ dotenv.config();
 const app = express();
 const PORT = process.env.PORT || 8000;
 
+app.set('trust proxy', 1);
+
 app.use(
   cors({
     origin: process.env.CLIENT_URL,
     credentials: true,
     methods: ["GET", "POST", "PUT", "DELETE", "PATCH"],
-    allowedHeaders: ["Content-Type", "Authorization", "Cache-Control", "Expires", "Pragma"],
-  }),
+    allowedHeaders: ["Content-Type", "Authorization"],
+  })
 );
-
-
-
 
 app.use(cookieParser());
 
@@ -42,6 +42,8 @@ app.use("/api/workspace", workspaceRoutes)
 app.use("/api/workspace", projectRoutes)
 app.use("/api/workspace", issueRoutes)
 app.use("/api/github", githubRoutes)
+app.use("/api/workspace", activityRoutes);
+
 
 app.use(errorMiddleware);
 

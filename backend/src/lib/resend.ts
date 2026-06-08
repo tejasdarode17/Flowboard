@@ -19,7 +19,6 @@ export async function sendMailFromResend({ to, subject, html, }: SendMailProps) 
             subject,
             html,
         });
-        console.log(response);
         return response;
     } catch (error) {
         console.log(error);

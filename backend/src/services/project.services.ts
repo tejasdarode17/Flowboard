@@ -3,14 +3,19 @@ import prisma from "../lib/prisma";
 import AppError from "../utils/AppError";
 import { Prisma } from "@prisma/client";
 import { ProjectInput, UpdateProjectInput } from "../validations/project.validations";
+import { createActivity } from "./activites.services";
 
-export async function createProject(data: ProjectInput, workspaceId: string,) {
+export async function createProject(data: ProjectInput, workspaceId: string, actorId: string) {
 
     const existing = await prisma.project.findFirst({
-        where: { name: data.name, workspaceId: workspaceId }
-    })
+        where: {
+            name: data.name,
+            workspaceId
+        }
+    });
+
     if (existing) {
-        throw new AppError("Project with same name already exist", 409)
+        throw new AppError("Project with same name already exist", 409);
     }
 
     const slug = slugify(data.name, {
@@ -22,20 +27,32 @@ export async function createProject(data: ProjectInput, workspaceId: string,) {
     const project = await prisma.project.create({
         data: {
             name: data.name,
-            slug: slug,
+            slug,
             description: data.description,
             emoji: data.emoji,
             emojiId: data.emojiId,
-            workspaceId: workspaceId,
+            workspaceId,
         }
-    })
+    });
 
-    return project
+    await createActivity({
+        workspaceId,
+        projectId: project.id,
 
+        actorId,
+
+        action: "PROJECT_CREATED",
+
+        entityType: "PROJECT",
+        entityId: project.id,
+        entityName: project.name,
+    });
+
+    return project;
 }
 
 
-export async function updateProject(data: UpdateProjectInput, workspaceId: string, projectId: string) {
+export async function updateProject(data: UpdateProjectInput, workspaceId: string, projectId: string, actorId: string) {
 
     const project = await prisma.project.findFirst({
         where: {
@@ -44,9 +61,8 @@ export async function updateProject(data: UpdateProjectInput, workspaceId: strin
         },
     });
 
-    if (!project) {
-        throw new AppError("Project not found", 404);
-    }
+    if (!project) throw new AppError("Project not found", 404);
+
 
     const updatedData: Prisma.ProjectUpdateInput = {};
 
@@ -73,10 +89,34 @@ export async function updateProject(data: UpdateProjectInput, workspaceId: strin
     }
 
     try {
-        return await prisma.project.update({
-            where: { id: projectId, },
+
+        const updatedProject = await prisma.project.update({
+            where: {
+                id: projectId,
+            },
             data: updatedData,
         });
+
+        await createActivity({
+            workspaceId,
+            projectId: project.id,
+
+            actorId,
+
+            action: "PROJECT_UPDATED",
+
+            entityType: "PROJECT",
+            entityId: project.id,
+            entityName: updatedProject.name,
+
+            metadata: {
+                oldName: project.name,
+                newName: updatedProject.name,
+            }
+        });
+
+        return updatedProject;
+
     } catch (error: any) {
         if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === "P2002") {
             throw new AppError("Project with same name already exists", 409);
@@ -93,11 +133,50 @@ export async function getProjects(workspaceId: string) {
 
 
 export async function getProjectDetails(projectId: string) {
-
-    const project = await prisma.project.findFirst({ where: { id: projectId }, include: { projectGitHub: true } })
+    const project = await prisma.project.findFirst({ where: { id: projectId }, include: { projectGithub: true } })
     if (!project) {
         throw new AppError("Project not found", 404);
     }
     return project
 }
+
+
+export async function deleteProject(projectId: string, workspaceId: string, actorId: string) {
+
+    const project = await prisma.project.findFirst({
+        where: {
+            id: projectId,
+            workspaceId,
+        },
+    });
+
+    if (!project) {
+        throw new AppError("Project not found", 404);
+    }
+
+    await createActivity({
+        workspaceId,
+        projectId: project.id,
+
+        actorId,
+
+        action: "PROJECT_DELETED",
+
+        entityType: "PROJECT",
+        entityId: project.id,
+        entityName: project.name,
+    });
+
+    await prisma.project.delete({
+        where: {
+            id: project.id,
+        },
+    });
+
+    return {
+        success: true,
+    };
+}
+
+
 

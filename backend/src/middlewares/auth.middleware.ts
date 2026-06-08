@@ -12,7 +12,6 @@ export const verifyAuth = (req: Request, res: Response, next: NextFunction) => {
     req.user = decoded;
     next();
   } catch (error) {
-    console.log(error);
     return next(error);
   }
 };

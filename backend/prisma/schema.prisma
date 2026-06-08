@@ -21,7 +21,7 @@ model User {
   updatedAt     DateTime       @updatedAt
   members       Member[]
   notifications Notification[]
-  gitHubAccount GitHubAccount?
+  githubAccount GithubAccount?
 }
 
 enum AuthProvider {
@@ -84,7 +84,7 @@ model Project {
   createdAt     DateTime       @default(now())
   updatedAt     DateTime       @updatedAt
   issues        Issue[]
-  projectGitHub ProjectGitHub?
+  projectGithub ProjectGithub?
   activities    Activity[]
 
   @@unique([workspaceId, name])
@@ -138,7 +138,7 @@ model WorkspaceInvite {
   createdAt DateTime @default(now())
 }
 
-model GitHubAccount {
+model GithubAccount {
   id          String   @id @default(uuid())
   userId      String   @unique
   user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
@@ -149,7 +149,7 @@ model GitHubAccount {
   updatedAt   DateTime @updatedAt
 }
 
-model ProjectGitHub {
+model ProjectGithub {
   id           String   @id @default(uuid())
   projectId    String   @unique
   project      Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
@@ -172,21 +172,37 @@ model Activity {
   actorId String
   actor   Member @relation(fields: [actorId], references: [id])
 
-  action   String
+  action String
+
+  entityType String?
+  entityId   String?
+  entityName String?
+
+  targetType String?
+  targetId   String?
+  targetName String?
+
   metadata Json?
 
   createdAt DateTime @default(now())
 }
 
 model Notification {
-  id        String           @id @default(uuid())
-  userId    String
-  user      User             @relation(fields: [userId], references: [id], onDelete: Cascade)
-  type      NotificationType
-  message   String
-  read      Boolean          @default(false)
-  metadata  Json?
-  createdAt DateTime         @default(now())
+  id String @id @default(uuid())
+
+  userId String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  actorId String?
+
+  type    NotificationType
+  message String
+
+  read Boolean @default(false)
+
+  metadata Json?
+
+  createdAt DateTime @default(now())
 }
 
 enum NotificationType {

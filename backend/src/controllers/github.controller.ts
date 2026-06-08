@@ -1,9 +1,10 @@
 import { NextFunction, Request, Response } from "express";
-import { getGitHubAuthUrl, getGitHubRepositories, handleGitHubCallback, linkRepositoryToProject, processGitHubWebhook } from "../services/github.services";
+import { getGithubAuthUrl, getGithubRepositories, handleGithubCallback, linkRepositoryToProject, processGitHubWebhook, } from "../services/github.services";
 import AppError from "../utils/AppError";
 import { generateGitHubState } from "../utils/jwt";
 import { linkRepositorySchema } from "../validations/github.validations";
-import { verifyGitHubWebhookSignature } from "../utils/VerifyGithubWebhookSignature";
+import { verifyGitHubWebhookSignature } from "../utils/githubUtils";
+import { GithubEvent, GithubWebhookPayload, } from "../types/githubWebhook.types";
 
 
 export async function connectGitHubController(req: Request, res: Response, next: NextFunction) {
@@ -16,7 +17,7 @@ export async function connectGitHubController(req: Request, res: Response, next:
         }
 
         const state = generateGitHubState(userId, workspaceSlug);
-        const url = getGitHubAuthUrl(state);
+        const url = getGithubAuthUrl(state);
 
         return res.status(200).json({
             success: true,
@@ -42,7 +43,7 @@ export async function githubCallbackController(req: Request, res: Response, next
             return next(new AppError("GitHub state required", 400));
         }
 
-        const { workspaceSlug } = await handleGitHubCallback(String(code), String(state))
+        const { workspaceSlug } = await handleGithubCallback(String(code), String(state))
 
         return res.redirect(`${process.env.CLIENT_URL}/${workspaceSlug}/settings?github=connected`);
 
@@ -60,7 +61,7 @@ export async function getGitHubRepositoriesController(req: Request, res: Respons
             return next(new AppError("Unauthorized", 401));
         }
 
-        const repositories = await getGitHubRepositories(userId);
+        const repositories = await getGithubRepositories(userId);
 
         return res.status(200).json({
             success: true,
@@ -97,21 +98,16 @@ export async function linkRepositoryController(req: Request, res: Response, next
     }
 }
 
-
-
-
 export async function githubWebhookController(req: Request, res: Response, next: NextFunction) {
     try {
-        const signature = req.headers["x-hub-signature-256"];
+        const signature =
+            req.headers["x-hub-signature-256"];
 
         if (!signature || Array.isArray(signature)) {
             return next(new AppError("Missing webhook signature", 401));
         }
 
-        const isValid = verifyGitHubWebhookSignature(
-            req.body as Buffer,
-            signature
-        );
+        const isValid = verifyGitHubWebhookSignature(req.body as Buffer, signature);
 
         if (!isValid) {
             return next(new AppError("Invalid webhook signature", 401));
@@ -123,22 +119,29 @@ export async function githubWebhookController(req: Request, res: Response, next:
             return next(new AppError("Missing GitHub event", 400));
         }
 
-        const deliveryId = req.headers["x-github-delivery"];
+        const supportedEvents: GithubEvent[] = [
+            "push",
+            "pull_request",
+            "issues",
+            "issue_comment",
+        ];
 
-        const payload = JSON.parse(
-            (req.body as Buffer).toString("utf8")
-        );
+        if (!supportedEvents.includes(event as GithubEvent)) {
+            return res.status(200).json({
+                success: true,
+                message: "Event ignored",
+            });
+        }
+
+        const payload = JSON.parse((req.body as Buffer).toString("utf8")) as GithubWebhookPayload;
+
+        const deliveryId = req.headers["x-github-delivery"];
 
         console.log("Webhook verified");
         console.log("Event:", event);
         console.log("Delivery ID:", deliveryId);
 
-
-        //inka type banana hai payload ka any likha hai service me abhi  
-        await processGitHubWebhook(
-            event,
-            payload
-        );
+        await processGitHubWebhook(event as GithubEvent, payload);
 
         return res.status(200).json({
             success: true,

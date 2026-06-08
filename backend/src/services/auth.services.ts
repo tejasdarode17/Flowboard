@@ -1,6 +1,6 @@
 import { JwtPayload } from '../types/jwtPayload';
 import bcrypt from "bcryptjs";
-import { RegisterInput, LoginInput } from "../validations/auth.validations"; //this is types we created in auth.validations
+import { RegisterInput, LoginInput } from "../validations/auth.validations";
 import prisma from "../lib/prisma";
 import { generateAccessToken, generateRefreshToken, verifyRefreshToken } from "../utils/jwt";
 import AppError from "../utils/AppError";
@@ -110,7 +110,7 @@ export async function getCurrentUser(userId: string) {
   const user = await prisma.user.findUnique({
     where: { id: userId },
     include: {
-      gitHubAccount: {
+      githubAccount: {
         select: {
           username: true,
           githubId: true

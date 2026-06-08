@@ -6,6 +6,7 @@ import AppError from "../utils/AppError";
 import slugify from "slugify";
 import { uploadImageToCloudinary } from '../utils/cloudinaryHandler';
 import { sendInviteEmail } from '../utils/mailer';
+import { createActivity } from './activites.services';
 
 export async function createWorkspace(data: CreateWorkspaceInput, userId: string, file: Buffer | undefined) {
 
@@ -55,7 +56,7 @@ export async function createWorkspace(data: CreateWorkspaceInput, userId: string
 };
 
 
-export async function updateWorkspace(data: UpdateWorkspaceInput, workspaceId: string) {
+export async function updateWorkspace(data: UpdateWorkspaceInput, workspaceId: string, memberId: string) {
 
   const workspace = await prisma.workspace.findUnique({ where: { id: workspaceId } });
 
@@ -94,6 +95,23 @@ export async function updateWorkspace(data: UpdateWorkspaceInput, workspaceId: s
       data: updatedData,
     });
 
+
+    await createActivity({
+      workspaceId: workspace.id,
+
+      actorId: memberId,
+
+      action: "WORKSPACE_UPDATED",
+
+      entityType: "WORKSPACE",
+      entityId: workspace.id,
+      entityName: updatedWorkspace.name,
+
+      metadata: {
+        updatedFields: Object.keys(updatedData),
+      },
+    });
+
     return updatedWorkspace;
   } catch (error: unknown) {
     if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === "P2002") {
@@ -112,7 +130,7 @@ export async function getWorkspaces(userId: string) {
       workspace: true
     }
   })
-
+  
   if (!memberships.length) {
     throw new AppError("You are not part of any workspaces", 404)
   }
@@ -260,10 +278,13 @@ export async function acceptWorkspaceInvite(token: string, userId: string) {
   const alreadyMember = await prisma.member.findFirst({
     where: { workspaceId: invite.workspaceId, user: { email: user.email } },
   });
+
   if (alreadyMember) throw new AppError("Already a member of this workspace", 409);
 
+
   await prisma.$transaction(async (tx) => {
-    await tx.member.create({
+
+    const member = await tx.member.create({
       data: {
         userId,
         workspaceId: invite.workspaceId,
@@ -275,11 +296,164 @@ export async function acceptWorkspaceInvite(token: string, userId: string) {
       where: { token },
       data: { accepted: true },
     });
+
+    await tx.activity.create({
+      data: {
+        workspaceId: invite.workspaceId,
+
+        actorId: member.id,
+
+        action: "MEMBER_ADDED",
+
+        entityType: "MEMBER",
+        entityId: member.id,
+        entityName: user.name,
+      },
+    });
+
   });
 
   return invite.workspace;
 };
 
 
+export async function removeMember(workspaceId: string, targetMemberId: string, actorMemberId: string) {
+
+  const actor = await prisma.member.findUnique({
+    where: {
+      id: actorMemberId,
+    },
+  });
+
+  const target = await prisma.member.findUnique({
+    where: {
+      id: targetMemberId,
+    },
+    include: {
+      user: true,
+    },
+  });
+
+  if (!actor || !target) {
+    throw new AppError("Member not found", 404);
+  }
+
+  if (target.workspaceId !== workspaceId) {
+    throw new AppError("Member not found", 404);
+  }
+
+  if (actor.id === target.id) {
+    throw new AppError("You cannot remove yourself", 400);
+  }
+
+  // MEMBER cannot remove anyone
+  if (actor.role === "MEMBER") {
+    throw new AppError("You do not have permission to remove members", 403);
+  }
+
+  // ADMIN can only remove MEMBER
+  if (actor.role === "ADMIN" && target.role !== "MEMBER") {
+    throw new AppError("Admins can only remove members", 403);
+  }
+
+  // OWNER cannot remove another OWNER
+  if (actor.role === "OWNER" && target.role === "OWNER") {
+    throw new AppError("Workspace owner cannot be removed", 403);
+  }
+
+  await createActivity({
+    workspaceId,
+
+    actorId: actor.id,
+
+    action: "MEMBER_REMOVED",
+
+    entityType: "MEMBER",
+    entityId: target.id,
+    entityName: target.user.name,
+  });
+
+  await prisma.member.delete({
+    where: {
+      id: target.id,
+    },
+  });
+
+  return {
+    success: true,
+    message: "Member removed successfully",
+  };
+}
+
+
+export async function updateMemberRole(workspaceId: string, targetMemberId: string, actorMemberId: string, role: Role) {
+
+  const actor = await prisma.member.findUnique({
+    where: {
+      id: actorMemberId,
+    },
+  });
+
+  const target = await prisma.member.findUnique({
+    where: {
+      id: targetMemberId,
+    },
+    include: {
+      user: true,
+    },
+  });
+
+  if (!actor || !target) {
+    throw new AppError("Member not found", 404);
+  }
+
+  if (target.workspaceId !== workspaceId) {
+    throw new AppError("Member not found", 404);
+  }
+
+  if (actor.role !== "OWNER") {
+    throw new AppError("Only workspace owner can change roles", 403);
+  }
+
+  if (actor.id === target.id) {
+    throw new AppError("You cannot change your own role", 400);
+  }
+
+  if (target.role === "OWNER") {
+    throw new AppError("Owner role cannot be modified", 400);
+  }
+
+  if (target.role === role) {
+    throw new AppError(`Member is already ${role}`, 400);
+  }
+
+  const updatedMember = await prisma.member.update({
+    where: {
+      id: target.id,
+    },
+    data: {
+      role,
+    },
+  });
+
+  await createActivity({
+    workspaceId,
+
+    actorId: actor.id,
+
+    action: "MEMBER_ROLE_CHANGED",
+
+    entityType: "MEMBER",
+    entityId: target.id,
+    entityName: target.user.name,
+
+    metadata: {
+      oldRole: target.role,
+      newRole: role,
+    },
+  });
+
+  return updatedMember;
+}
 
 

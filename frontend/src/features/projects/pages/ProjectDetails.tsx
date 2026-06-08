@@ -86,11 +86,11 @@ const ProjectDetails = () => {
         </div>
 
         <div className="flex gap-2">
-          {project?.projectGitHub ? (
+          {project?.projectGithub ? (
             <div className="rounded-lg border px-3 py-2">
               <p className="text-sm text-muted-foreground">Linked Repository</p>
 
-              <p className="font-medium">{project.projectGitHub.repoFullName}</p>
+              <p className="font-medium">{project.projectGithub.repoFullName}</p>
             </div>
           ) : (
             <LinkRepository projectId={projectId!} />

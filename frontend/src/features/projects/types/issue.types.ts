@@ -6,7 +6,11 @@ export interface Issue {
     description?: string;
     status: "TODO" | "IN_PROGRESS" | "DONE";
     priority: "Low" | "Medium" | "High";
-    projectId: string;
+    project: {
+        id: string,
+        name: string,
+        emoji: string
+    }
     assignedTo: string;
     createdBy: string;
     assignee: {

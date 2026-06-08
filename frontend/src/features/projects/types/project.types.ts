@@ -1,6 +1,6 @@
 import type { CreateProjectInput } from "../validations/project.validations";
 
-export interface ProjectGitHub {
+export interface ProjectGithub {
     id: string;
     repoId: string;
     repoFullName: string;
@@ -16,7 +16,9 @@ export interface Project {
     description: string;
     emoji?: string | null;
     emojiId?: string | null;
-    projectGitHub?: ProjectGitHub | null;
+    projectGithub?: ProjectGithub | null;
+    createdAt: string;
+    updatedAt: string;
 }
 
 

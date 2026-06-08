@@ -20,7 +20,6 @@ export const getMyIssuesApi = async (workspaceSlug: string) => {
 
 export const updateIssueApi = async ({ workspaceSlug, projectId, issueId, data }: UpdateIssueParams) => {
     const { data: response } = await api.post(`/api/workspace/${workspaceSlug}/projects/${projectId}/issues/${issueId}`, data);
-    console.log(response.data);
     return response.data;
 };
 

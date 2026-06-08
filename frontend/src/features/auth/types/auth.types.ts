@@ -1,5 +1,5 @@
 
-export interface GitHubAccount {
+export interface GithubAccount {
     username: string;
     githubId: string;
 }
@@ -14,7 +14,7 @@ export interface AuthUser {
     avatar?: string | null
     createdAt: string;
     updatedAt: string;
-    gitHubAccount: GitHubAccount | null;
+    githubAccount: GithubAccount | null;
 }
 
 

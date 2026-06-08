@@ -4,9 +4,9 @@ import { Link, Loader2 } from "lucide-react";
 import { useGithubRepositories } from "../hooks/useGithubRepositories";
 import { useLinkRepository } from "../hooks/useLinkRepositories";
 import { useParams } from "react-router-dom";
-import type { GitHubRepository } from "../types/github.types";
 import { apiErrors } from "@/shared/utils/errorHandler";
 import { useState } from "react";
+import type { GithubRepository } from "../types/github.types";
 
 interface LinkRepositoresProps {
   projectId: string;
@@ -58,7 +58,7 @@ const LinkRepository = ({ projectId }: LinkRepositoresProps) => {
           <Loader2 className="w-full flex justify-center items-center animate-spin" />
         ) : (
           <div className="space-y-2">
-            {repos?.map((repo: GitHubRepository) => (
+            {repos?.map((repo: GithubRepository) => (
               <Button
                 key={repo.id}
                 variant="outline"

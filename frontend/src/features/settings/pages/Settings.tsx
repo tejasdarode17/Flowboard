@@ -10,9 +10,10 @@ const Settings = () => {
 
   const { userData } = useAppSelector((store) => store.auth);
 
-  const isGitHubConnected = Boolean(userData?.gitHubAccount);
+  const isGitHubConnected = Boolean(userData?.githubAccount);
 
-  
+  console.log(isGitHubConnected);
+
   const { mutateAsync, isPending } = useGithubConnect(workspaceSlug!);
 
   async function handleConnectGitHub() {
@@ -48,7 +49,7 @@ const Settings = () => {
 
           {isGitHubConnected ? (
             <Button disabled variant="outline" className="bg-green-600">
-              Connected (@{userData?.gitHubAccount?.username})
+              Connected (@{userData?.githubAccount?.username})
             </Button>
           ) : (
             <Button onClick={handleConnectGitHub} disabled={isPending} variant="outline">

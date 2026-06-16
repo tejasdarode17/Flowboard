@@ -5,13 +5,13 @@ import { Prisma } from "@prisma/client";
 import { ProjectInput, UpdateProjectInput } from "../validations/project.validations";
 import { createActivity } from "./activites.services";
 
-export async function createProject(data: ProjectInput, workspaceId: string, actorId: string) {
 
+export async function createProject(data: ProjectInput, workspaceId: string, actorId: string) {
     const existing = await prisma.project.findFirst({
         where: {
             name: data.name,
-            workspaceId
-        }
+            workspaceId,
+        },
     });
 
     if (existing) {
@@ -24,28 +24,35 @@ export async function createProject(data: ProjectInput, workspaceId: string, act
         trim: true,
     });
 
-    const project = await prisma.project.create({
-        data: {
-            name: data.name,
-            slug,
-            description: data.description,
-            emoji: data.emoji,
-            emojiId: data.emojiId,
-            workspaceId,
-        }
-    });
+    const project = await prisma.$transaction(async (tx) => {
+        const project = await tx.project.create({
+            data: {
+                name: data.name,
+                slug,
+                description: data.description,
+                emoji: data.emoji,
+                emojiId: data.emojiId,
+                workspaceId,
+            },
+        });
 
-    await createActivity({
-        workspaceId,
-        projectId: project.id,
+        await createActivity(
+            {
+                workspaceId,
+                projectId: project.id,
 
-        actorId,
+                actorId,
 
-        action: "PROJECT_CREATED",
+                action: "PROJECT_CREATED",
 
-        entityType: "PROJECT",
-        entityId: project.id,
-        entityName: project.name,
+                entityType: "PROJECT",
+                entityId: project.id,
+                entityName: project.name,
+            },
+            tx
+        );
+
+        return project;
     });
 
     return project;
@@ -53,7 +60,6 @@ export async function createProject(data: ProjectInput, workspaceId: string, act
 
 
 export async function updateProject(data: UpdateProjectInput, workspaceId: string, projectId: string, actorId: string) {
-
     const project = await prisma.project.findFirst({
         where: {
             id: projectId,
@@ -62,7 +68,6 @@ export async function updateProject(data: UpdateProjectInput, workspaceId: strin
     });
 
     if (!project) throw new AppError("Project not found", 404);
-
 
     const updatedData: Prisma.ProjectUpdateInput = {};
 
@@ -88,41 +93,37 @@ export async function updateProject(data: UpdateProjectInput, workspaceId: strin
         updatedData.emojiId = data.emojiId;
     }
 
-    try {
-
-        const updatedProject = await prisma.project.update({
-            where: {
-                id: projectId,
-            },
+    const updatedProject = await prisma.$transaction(async (tx) => {
+        const updated = await tx.project.update({
+            where: { id: projectId },
             data: updatedData,
         });
 
-        await createActivity({
-            workspaceId,
-            projectId: project.id,
+        await createActivity(
+            {
+                workspaceId,
+                projectId: project.id,
 
-            actorId,
+                actorId,
 
-            action: "PROJECT_UPDATED",
+                action: "PROJECT_UPDATED",
 
-            entityType: "PROJECT",
-            entityId: project.id,
-            entityName: updatedProject.name,
+                entityType: "PROJECT",
+                entityId: project.id,
+                entityName: updated.name,
 
-            metadata: {
-                oldName: project.name,
-                newName: updatedProject.name,
-            }
-        });
+                metadata: {
+                    oldName: project.name,
+                    newName: updated.name,
+                },
+            },
+            tx
+        );
 
-        return updatedProject;
+        return updated;
+    });
 
-    } catch (error: any) {
-        if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === "P2002") {
-            throw new AppError("Project with same name already exists", 409);
-        }
-        throw error;
-    }
+    return updatedProject;
 }
 
 
@@ -142,7 +143,7 @@ export async function getProjectDetails(projectId: string) {
 
 
 export async function deleteProject(projectId: string, workspaceId: string, actorId: string) {
-
+ 
     const project = await prisma.project.findFirst({
         where: {
             id: projectId,
@@ -154,29 +155,32 @@ export async function deleteProject(projectId: string, workspaceId: string, acto
         throw new AppError("Project not found", 404);
     }
 
-    await createActivity({
-        workspaceId,
-        projectId: project.id,
+    await prisma.$transaction(async (tx) => {
+        await tx.project.delete({
+            where: {
+                id: project.id,
+            },
+        });
 
-        actorId,
+        await createActivity(
+            {
+                workspaceId,
+                projectId: project.id,
 
-        action: "PROJECT_DELETED",
+                actorId,
 
-        entityType: "PROJECT",
-        entityId: project.id,
-        entityName: project.name,
-    });
+                action: "PROJECT_DELETED",
 
-    await prisma.project.delete({
-        where: {
-            id: project.id,
-        },
+                entityType: "PROJECT",
+                entityId: project.id,
+                entityName: project.name,
+            },
+            tx
+        );
     });
 
     return {
         success: true,
     };
 }
-
-
 

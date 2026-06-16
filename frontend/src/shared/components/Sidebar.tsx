@@ -1,4 +1,4 @@
-import { FolderKanban, LayoutGrid, Loader2, LogOut, Settings, Users2, ChevronDown, Plus } from "lucide-react";
+import { FolderKanban, LayoutGrid, Loader2, LogOut, Settings, Users2, ChevronDown, Plus, Activity } from "lucide-react";
 import { NavLink, useNavigate, useParams } from "react-router-dom";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
@@ -13,6 +13,7 @@ import axios from "axios";
 import { clearUser } from "@/redux/authSlice";
 import { useAppDispatch } from "../hooks/useAppDispatch";
 import MemberBadge from "@/features/workspace/components/MemberBadge";
+import NotificationBell from "@/features/notifications/NotificationBell";
 
 const Sidebar = () => {
   return (
@@ -61,6 +62,18 @@ export const SideBarContent = () => {
       path: `/${workspaceSlug}/settings`,
       shortcut: "4",
     },
+    {
+      label: "Activity",
+      icon: Activity,
+      path: `/${workspaceSlug}/activities`,
+      shortcut: "5",
+    },
+    // {
+    //   label: "Notifications",
+    //   icon: EarthIcon,
+    //   path: `/${workspaceSlug}/notifications`,
+    //   shortcut: "5",
+    // },
   ];
 
   function handleWorkspaceSelect(slug: string) {
@@ -84,14 +97,17 @@ export const SideBarContent = () => {
   return (
     <div className="flex flex-col h-full px-3 py-4">
       {/* Brand header */}
-      <div className="flex items-center gap-2.5 px-2 mb-1">
-        <div className="flex items-center justify-center h-8 w-8 rounded-lg bg-foreground/5">
-          <FlowBoardLogo size={22} />
+      <div className="flex items-center justify-between px-2 mb-1">
+        <div className="flex items-center gap-2.5">
+          <div className="flex items-center justify-center h-8 w-8 rounded-lg bg-foreground/5">
+            <FlowBoardLogo size={22} />
+          </div>
+          <div className="min-w-0">
+            <p className="text-sm font-semibold tracking-tight">FlowBoard</p>
+            <p className="text-[10px] text-muted-foreground/50 leading-tight">Project Management</p>
+          </div>
         </div>
-        <div className="min-w-0">
-          <p className="text-sm font-semibold tracking-tight">FlowBoard</p>
-          <p className="text-[10px] text-muted-foreground/50 leading-tight">Project Management</p>
-        </div>
+        <NotificationBell />
       </div>
 
       {/* Workspace switcher - Linear style dropdown */}

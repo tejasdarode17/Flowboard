@@ -42,6 +42,7 @@ model Workspace {
   projects         Project[]
   workspaceInvites WorkspaceInvite[]
   activities       Activity[]
+  notifications    Notification[]
 }
 
 model Member {
@@ -57,9 +58,10 @@ model Member {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  assignedIssues Issue[]    @relation("IssueAssignee")
-  createdIssues  Issue[]    @relation("IssueCreator")
+  assignedIssues Issue[]        @relation("IssueAssignee")
+  createdIssues  Issue[]        @relation("IssueCreator")
   activities     Activity[]
+  notifications  Notification[]
 
   @@unique([userId, workspaceId])
 }
@@ -86,6 +88,7 @@ model Project {
   issues        Issue[]
   projectGithub ProjectGithub?
   activities    Activity[]
+  notifications Notification[]
 
   @@unique([workspaceId, name])
   @@unique([workspaceId, slug])
@@ -172,44 +175,87 @@ model Activity {
   actorId String
   actor   Member @relation(fields: [actorId], references: [id])
 
-  action String
+  action ActivityAction
 
   entityType String?
   entityId   String?
   entityName String?
 
-  targetType String?
-  targetId   String?
-  targetName String?
-
   metadata Json?
 
   createdAt DateTime @default(now())
 }
 
+enum ActivityAction {
+  WORKSPACE_UPDATED
+
+  PROJECT_CREATED
+  PROJECT_UPDATED
+  PROJECT_DELETED
+
+  ISSUE_CREATED
+  ISSUE_UPDATED
+  ISSUE_DELETED
+  ISSUE_STATUS_CHANGED
+  ISSUE_PRIORITY_CHANGED
+  ISSUE_ASSIGNED
+  ISSUE_COMPLETED
+  ISSUE_REOPENED
+
+  MEMBER_JOINED
+  MEMBER_REMOVED
+  MEMBER_ROLE_CHANGED
+
+  PUSH
+
+  PR_OPENED
+  PR_MERGED
+  PR_CLOSED
+  PR_REOPENED
+
+  COMMENT_ADDED
+}
+
 model Notification {
-  id String @id @default(uuid())
+  id String @id @default(cuid())
 
-  userId String
-  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  memberId String
+  member   Member @relation(fields: [memberId], references: [id])
 
-  actorId String?
+  workspaceId String
+  workspace   Workspace @relation(fields: [workspaceId], references: [id])
 
-  type    NotificationType
+  projectId String?
+  project   Project? @relation(fields: [projectId], references: [id])
+
+  title   String
   message String
 
-  read Boolean @default(false)
+  type NotificationType
+
+  entityId   String?
+  entityType String?
 
   metadata Json?
 
+  read Boolean @default(false)
+
   createdAt DateTime @default(now())
+  user      User?    @relation(fields: [userId], references: [id])
+  userId    String?
+
+  @@index([memberId, createdAt])
 }
 
 enum NotificationType {
   ISSUE_ASSIGNED
   ISSUE_UPDATED
+  ISSUE_COMMENTED
+  ISSUE_CREATED
   PR_OPENED
   PR_MERGED
   MEMBER_INVITED
   MEMBER_JOINED
+  MEMBER_REMOVED
+  MEMBER_ROLE_CHANGED
 }

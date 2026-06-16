@@ -1,4 +1,5 @@
-function formatRelativeTime(date: string): string {
+
+function formatDate(date: string): string {
     const now = new Date();
     const then = new Date(date);
     const diffMs = now.getTime() - then.getTime();
@@ -19,4 +20,4 @@ function formatRelativeTime(date: string): string {
 }
 
 
-export default formatRelativeTime
+export default formatDate

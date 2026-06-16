@@ -3,6 +3,14 @@ import AppError from "../utils/AppError";
 import { ZodError } from "zod";
 import { Prisma } from "@prisma/client";
 
+
+const uniqueFieldMessages: Record<string, string> = {
+  email: "Email already exists",
+  username: "Username already exists",
+  slug: "Workspace name already exists",
+};
+
+
 const errorMiddleware = (err: any, req: Request, res: Response, next: NextFunction) => {
 
   console.log(err);
@@ -28,20 +36,23 @@ const errorMiddleware = (err: any, req: Request, res: Response, next: NextFuncti
   }
 
   if (err instanceof Prisma.PrismaClientKnownRequestError) {
-
     // Duplicate field 
     if (err.code === "P2002") {
-      const field = (err.meta?.target as string[])?.[0] || 'email';
-      return res.status(400).json({
+      const fields = (err.meta?.target as string[]) ?? [];
+      const field = fields[fields.length - 1] || "field";
+
+      return res.status(409).json({
         success: false,
         message: "Validation failed",
         code: "VALIDATION_ERROR",
         errors: [
           {
-            field: field,
-            message: `${field} already exists`
-          }
-        ]
+            field,
+            message:
+              uniqueFieldMessages[field] ??
+              `${field} already exists`,
+          },
+        ],
       });
     }
 
@@ -54,11 +65,13 @@ const errorMiddleware = (err: any, req: Request, res: Response, next: NextFuncti
       });
     }
 
+    //any default error related to db or prisma 
     return res.status(400).json({
       success: false,
       message: "Database error",
       code: "PRISMA_ERROR",
     });
+
   }
 
   res.status(500).json({

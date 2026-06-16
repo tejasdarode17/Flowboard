@@ -1,5 +1,6 @@
 import './globals'
 import express from "express";
+import http from "http"
 import dotenv from "dotenv";
 import cors from "cors";
 import cookieParser from "cookie-parser";
@@ -9,12 +10,18 @@ import projectRoutes from "./routes/project.routes"
 import issueRoutes from "./routes/issues.routes"
 import githubRoutes from "./routes/github.routes"
 import webhooksRoutes from "./routes/webhook.routes"
-import activityRoutes from "./routes/activities.routes";
+import activityRoutes from "./routes/activities.routes"
+import notificationsRoutes from './routes/notifications.routes'
 import errorMiddleware from "./middlewares/error.middleware";
 import cloudinaryConfig from './lib/cloudinary';
+import { initSocket } from './socket/socket';
 
 dotenv.config();
+
+
 const app = express();
+const httpServer = http.createServer(app)
+
 const PORT = process.env.PORT || 8000;
 
 app.set('trust proxy', 1);
@@ -43,11 +50,12 @@ app.use("/api/workspace", projectRoutes)
 app.use("/api/workspace", issueRoutes)
 app.use("/api/github", githubRoutes)
 app.use("/api/workspace", activityRoutes);
-
-
+app.use("/api/workspace/", notificationsRoutes)
 app.use(errorMiddleware);
 
-app.listen(PORT, () => {
+initSocket(httpServer);
+
+httpServer.listen(PORT, () => {
   cloudinaryConfig()
   console.log(`Server is running on ${PORT}`);
 });

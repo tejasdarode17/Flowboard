@@ -1,17 +1,38 @@
 import { NextFunction, Request, Response } from "express";
-import AppError from "../utils/AppError";
-import { getProjectRecentActivities, getWorkspaceRecentActivities } from "../services/activites.services";
+import { getActivities, getRecentActivities } from "../services/activites.services";
 
-export async function getWorkspaceActivitiesController(req: Request, res: Response, next: NextFunction) {
+
+export async function getActivitiesController(req: Request, res: Response, next: NextFunction) {
     try {
+        const workspaceId = req.workspace.id;
+        const activities = await getActivities(
+            workspaceId,
+            {
+                limit: req.query.limit as string,
+                cursor: req.query.cursor as string,
+                range: req.query.range as | "today" | "week" | "month",
+            }
+        );
 
+        return res.status(200).json({
+            success: true,
+            data: activities,
+        });
+        
+    } catch (error) {
+        next(error);
+    }
+}
+export async function getRecentActivitiesController(req: Request, res: Response, next: NextFunction) {
+    try {
         const workspaceId = req.workspace.id;
 
-        const activities = await getWorkspaceRecentActivities(workspaceId!);
+        const activities = await getRecentActivities(workspaceId!);
 
         return res.status(200).json({
             success: true,
             data: activities,
+            message: "Activities fetched successfully"
         });
 
     } catch (error) {
@@ -19,20 +40,31 @@ export async function getWorkspaceActivitiesController(req: Request, res: Respon
     }
 }
 
-export async function getProjectActivitiesController(req: Request, res: Response, next: NextFunction) {
-    try {
-        const { projectId } = req.params;
 
-        if (!projectId || Array.isArray(projectId)) {
-            return next(new AppError("Workspace Id is required", 401))
-        }
-        const activities = await getProjectRecentActivities(projectId);
 
-        return res.status(200).json({
-            success: true,
-            data: activities,
-        });
-    } catch (error) {
-        next(error);
-    }
-}
+
+
+
+
+
+
+
+
+
+// export async function getProjectActivitiesController(req: Request, res: Response, next: NextFunction) {
+//     try {
+//         const { projectId } = req.params;
+
+//         if (!projectId || Array.isArray(projectId)) {
+//             return next(new AppError("Workspace Id is required", 401))
+//         }
+//         const activities = await getProjectRecentActivities(projectId);
+
+//         return res.status(200).json({
+//             success: true,
+//             data: activities,
+//         });
+//     } catch (error) {
+//         next(error);
+//     }
+// }

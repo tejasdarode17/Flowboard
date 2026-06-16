@@ -14,7 +14,7 @@ export type ActivityAction =
     | "ISSUE_PRIORITY_CHANGED"
     | "ISSUE_COMPLETED"
     | "ISSUE_REOPENED"
-    | "MEMBER_ADDED"
+    | "MEMBER_JOINED"
     | "MEMBER_REMOVED"
     | "MEMBER_ROLE_CHANGED"
     | "PUSH"
@@ -34,24 +34,50 @@ export interface ActivityMetadata {
     from?: string;
     to?: string;
 
-    oldRole?: string
+    oldRole?: string;
     newRole?: string;
 
-    repository?: string | null
-    commitCount?: number | null
-    commitMessage?: string | null
+    repository?: string | null;
+
+    commitCount?: number | null;
+    commitMessage?: string | null;
+    commitSha?: string | null;
+    commitUrl?: string | null;
+    branch?: string | null;
 
     number?: number;
     url?: string;
 
+    sourceBranch?: string | null;
+    targetBranch?: string | null;
+
+    fromMemberId?: string;
+    fromMemberName?: string | null;
+
+    toMemberId?: string;
+    toMemberName?: string | null;
+
+    removedMemberId?: string;
+    removedMemberName?: string | null;
+
+    oldTitle?: string | null;
+    newTitle?: string | null;
+
+    oldDescription?: string | null;
+    newDescription?: string | null;
+
+    issueTitle?: string | null;
+
     [key: string]: unknown;
 }
-
 export interface Activity {
     id: string;
 
     workspaceId: string;
-    projectId: string | null;
+    
+    project: {
+        name: string
+    }
 
     actorId: string;
 
@@ -61,9 +87,9 @@ export interface Activity {
     entityId: string | null;
     entityName: string | null;
 
-    targetType: string | null;
-    targetId: string | null;
-    targetName: string | null;
+    // targetType: string | null;
+    // targetId: string | null;
+    // targetName: string | null;
 
     metadata: ActivityMetadata | null;
 
@@ -71,3 +97,11 @@ export interface Activity {
 
     actor: ActivityActor;
 }
+
+
+export type GetActivitiesParams = {
+    workspaceSlug: string;
+    range?: "today" | "week" | "month";
+    cursor?: string | null;
+    limit?: number;
+};

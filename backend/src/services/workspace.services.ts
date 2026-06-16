@@ -7,6 +7,8 @@ import slugify from "slugify";
 import { uploadImageToCloudinary } from '../utils/cloudinaryHandler';
 import { sendInviteEmail } from '../utils/mailer';
 import { createActivity } from './activites.services';
+import { createNotification } from './notification.services';
+import { emitToUser, emitToWorkspace } from '../socket/socket';
 
 export async function createWorkspace(data: CreateWorkspaceInput, userId: string, file: Buffer | undefined) {
 
@@ -58,7 +60,9 @@ export async function createWorkspace(data: CreateWorkspaceInput, userId: string
 
 export async function updateWorkspace(data: UpdateWorkspaceInput, workspaceId: string, memberId: string) {
 
-  const workspace = await prisma.workspace.findUnique({ where: { id: workspaceId } });
+  const workspace = await prisma.workspace.findUnique({
+    where: { id: workspaceId },
+  });
 
   if (!workspace) {
     throw new AppError("Workspace not found", 404);
@@ -77,11 +81,11 @@ export async function updateWorkspace(data: UpdateWorkspaceInput, workspaceId: s
     updatedData.slug = newSlug;
   }
 
-  if (data.logo !== undefined) {
+  if (data.logo !== undefined && data.logo !== workspace.logo) {
     updatedData.logo = data.logo;
   }
 
-  if (data.description !== undefined) {
+  if (data.description !== undefined && data.description !== workspace.description) {
     updatedData.description = data.description;
   }
 
@@ -89,37 +93,46 @@ export async function updateWorkspace(data: UpdateWorkspaceInput, workspaceId: s
     return workspace;
   }
 
-  try {
-    const updatedWorkspace = await prisma.workspace.update({
-      where: { id: workspaceId },
+
+  const updatedWorkspace = await prisma.$transaction(async (tx) => {
+    const updatedWorkspace = await tx.workspace.update({
+      where: {
+        id: workspaceId,
+      },
       data: updatedData,
     });
 
+    await createActivity(
+      {
+        workspaceId: workspace.id,
 
-    await createActivity({
-      workspaceId: workspace.id,
+        actorId: memberId,
 
-      actorId: memberId,
+        action: "WORKSPACE_UPDATED",
 
-      action: "WORKSPACE_UPDATED",
+        entityType: "WORKSPACE",
+        entityId: workspace.id,
+        entityName: updatedWorkspace.name,
 
-      entityType: "WORKSPACE",
-      entityId: workspace.id,
-      entityName: updatedWorkspace.name,
+        metadata: {
+          updatedFields: Object.keys(updatedData),
 
-      metadata: {
-        updatedFields: Object.keys(updatedData),
+          oldName: workspace.name,
+          newName: updatedWorkspace.name,
+
+          oldDescription: workspace.description,
+          newDescription: updatedWorkspace.description,
+        },
       },
-    });
+      tx
+    );
 
     return updatedWorkspace;
-  } catch (error: unknown) {
-    if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === "P2002") {
-      throw new AppError("Workspace name already exists", 409);
-    }
-    throw error;
-  }
-};
+  });
+
+  return updatedWorkspace;
+
+}
 
 
 export async function getWorkspaces(userId: string) {
@@ -130,7 +143,7 @@ export async function getWorkspaces(userId: string) {
       workspace: true
     }
   })
-  
+
   if (!memberships.length) {
     throw new AppError("You are not part of any workspaces", 404)
   }
@@ -267,23 +280,29 @@ export async function validateInviteToken(token: string) {
 export async function acceptWorkspaceInvite(token: string, userId: string) {
   const invite = await validateInviteToken(token);
 
-  const user = await prisma.user.findUnique({ where: { id: userId } });
+  const user = await prisma.user.findUnique({
+    where: { id: userId },
+    select: {
+      id: true,
+      name: true,
+      email: true,
+    },
+  });
+
   if (!user) throw new AppError("User not found", 404);
 
   if (user.email !== invite.email) {
     throw new AppError("This invite was sent to a different email", 403);
   }
 
-  // Already member toh nahi hai — edge case
-  const alreadyMember = await prisma.member.findFirst({
-    where: { workspaceId: invite.workspaceId, user: { email: user.email } },
+  const workspace = await prisma.workspace.findUnique({
+    where: { id: invite.workspaceId },
+    select: { id: true, name: true },
   });
 
-  if (alreadyMember) throw new AppError("Already a member of this workspace", 409);
+  if (!workspace) throw new AppError("Workspace not found", 404);
 
-
-  await prisma.$transaction(async (tx) => {
-
+  const result = await prisma.$transaction(async (tx) => {
     const member = await tx.member.create({
       data: {
         userId,
@@ -297,38 +316,88 @@ export async function acceptWorkspaceInvite(token: string, userId: string) {
       data: { accepted: true },
     });
 
-    await tx.activity.create({
-      data: {
+    await createActivity({
+      workspaceId: invite.workspaceId,
+      actorId: member.id,
+      action: "MEMBER_JOINED",
+      entityType: "MEMBER",
+      entityId: member.id,
+      entityName: user.name,
+    }, tx)
+    return member;
+  });
+
+  //notification 
+  try {
+
+    const members = await prisma.member.findMany({
+      where: {
         workspaceId: invite.workspaceId,
-
-        actorId: member.id,
-
-        action: "MEMBER_ADDED",
-
-        entityType: "MEMBER",
-        entityId: member.id,
-        entityName: user.name,
+      },
+      select: {
+        id: true,
       },
     });
 
-  });
+    await Promise.all(
+      members.map((m) =>
+        createNotification({
+          memberId: m.id,
+          workspaceId: invite.workspaceId,
 
-  return invite.workspace;
-};
+          title: "New member joined",
+          message: `${user.name} joined ${workspace.name}`,
+
+          type: "MEMBER_JOINED",
+
+          entityId: result.id,
+          entityType: "MEMBER",
+
+          metadata: {
+            joinedUserId: user.id,
+            joinedUserName: user.name,
+          },
+        })
+      )
+    );
+
+    emitToWorkspace(
+      workspace.id,
+      "notification:new",
+      {
+        workspaceId: invite.workspaceId,
+        title: "New member joined",
+        message: `${user.name} joined ${workspace.name}`,
+
+        type: "MEMBER_JOINED",
+
+        entityId: result.id,
+        entityType: "MEMBER",
+
+        metadata: {
+          joinedUserId: user.id,
+          joinedUserName: user.name,
+        },
+      }
+    )
+  } catch (error) {
+    console.error("Failed to create member joined notifications", error);
+  }
+
+  return {
+    workspaceId: invite.workspaceId,
+    memberId: result.id,
+  };
+}
 
 
 export async function removeMember(workspaceId: string, targetMemberId: string, actorMemberId: string) {
-
   const actor = await prisma.member.findUnique({
-    where: {
-      id: actorMemberId,
-    },
+    where: { id: actorMemberId },
   });
 
   const target = await prisma.member.findUnique({
-    where: {
-      id: targetMemberId,
-    },
+    where: { id: targetMemberId },
     include: {
       user: true,
     },
@@ -346,37 +415,44 @@ export async function removeMember(workspaceId: string, targetMemberId: string, 
     throw new AppError("You cannot remove yourself", 400);
   }
 
-  // MEMBER cannot remove anyone
+  // ROLE CHECKS
   if (actor.role === "MEMBER") {
     throw new AppError("You do not have permission to remove members", 403);
   }
 
-  // ADMIN can only remove MEMBER
   if (actor.role === "ADMIN" && target.role !== "MEMBER") {
     throw new AppError("Admins can only remove members", 403);
   }
 
-  // OWNER cannot remove another OWNER
   if (actor.role === "OWNER" && target.role === "OWNER") {
     throw new AppError("Workspace owner cannot be removed", 403);
   }
 
-  await createActivity({
-    workspaceId,
+  await prisma.$transaction(async (tx) => {
 
-    actorId: actor.id,
+    await tx.member.delete({
+      where: { id: target.id },
+    });
 
-    action: "MEMBER_REMOVED",
+    await createActivity({
+      workspaceId,
 
-    entityType: "MEMBER",
-    entityId: target.id,
-    entityName: target.user.name,
-  });
+      actorId: actor.id,
 
-  await prisma.member.delete({
-    where: {
-      id: target.id,
-    },
+      action: "MEMBER_REMOVED",
+
+      entityType: "MEMBER",
+      entityId: target.id,
+      entityName: target.user.name,
+
+      metadata: {
+        removedBy: actor.id,
+        removedMemberId: target.id,
+        removedMemberName: target.user.name,
+      },
+    }, tx)
+
+    return true;
   });
 
   return {
@@ -389,15 +465,11 @@ export async function removeMember(workspaceId: string, targetMemberId: string, 
 export async function updateMemberRole(workspaceId: string, targetMemberId: string, actorMemberId: string, role: Role) {
 
   const actor = await prisma.member.findUnique({
-    where: {
-      id: actorMemberId,
-    },
+    where: { id: actorMemberId },
   });
 
   const target = await prisma.member.findUnique({
-    where: {
-      id: targetMemberId,
-    },
+    where: { id: targetMemberId },
     include: {
       user: true,
     },
@@ -427,33 +499,66 @@ export async function updateMemberRole(workspaceId: string, targetMemberId: stri
     throw new AppError(`Member is already ${role}`, 400);
   }
 
-  const updatedMember = await prisma.member.update({
-    where: {
-      id: target.id,
-    },
-    data: {
-      role,
-    },
+  const oldRole = target.role;
+
+  const updatedMember = await prisma.$transaction(async (tx) => {
+    // 1. update role
+    const updated = await tx.member.update({
+      where: { id: target.id },
+      data: { role },
+    });
+
+    // 2. activity
+    await createActivity(
+      {
+        workspaceId,
+
+        actorId: actor.id,
+
+        action: "MEMBER_ROLE_CHANGED",
+
+        entityType: "MEMBER",
+        entityId: target.id,
+        entityName: target.user.name,
+
+        metadata: {
+          oldRole,
+          newRole: role,
+        },
+      },
+      tx
+    );
+
+    return updated;
   });
 
-  await createActivity({
-    workspaceId,
 
-    actorId: actor.id,
+  //notification
+  try {
+    const notification = await createNotification({
+      memberId: target.id,
+      workspaceId,
+      title: "Role updated",
+      message: `Your role has been changed from ${oldRole} to ${role}`,
 
-    action: "MEMBER_ROLE_CHANGED",
+      type: "MEMBER_ROLE_CHANGED",
 
-    entityType: "MEMBER",
-    entityId: target.id,
-    entityName: target.user.name,
+      entityId: target.id,
+      entityType: "MEMBER",
 
-    metadata: {
-      oldRole: target.role,
-      newRole: role,
-    },
-  });
+      metadata: {
+        oldRole,
+        newRole: role,
+        changedByMemberId: actor.id,
+      }
+    });
+
+    emitToUser(target.user.id, "notification:new", notification)
+
+
+  } catch (err) {
+    console.error("Notification failed", err);
+  }
 
   return updatedMember;
 }
-
-

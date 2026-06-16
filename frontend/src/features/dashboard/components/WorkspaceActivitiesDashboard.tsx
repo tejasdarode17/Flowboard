@@ -1,15 +1,15 @@
 import { Clock } from "lucide-react";
-import { useWorkspaceActivities } from "../hooks/useWorkspaceActivities";
 import formatRelativeTime from "@/shared/utils/formatDate";
-import { activityFormat } from "../utils/activityFormat";
-import type { Activity } from "../types/activity.types";
+import type { Activity } from "../../activities/types/activity.types";
+import { formatActivity } from "@/features/activities/utils/formatActivity";
+import { useRecentActivities } from "@/features/activities/hooks/useRecentActivities";
 
 interface Props {
   workspaceSlug: string;
 }
 
 const WorkspaceActivityDashboard = ({ workspaceSlug }: Props) => {
-  const { data: activities, isLoading } = useWorkspaceActivities(workspaceSlug);
+  const { data: activities, isLoading } = useRecentActivities(workspaceSlug);
 
   if (isLoading) {
     return (
@@ -40,7 +40,7 @@ const WorkspaceActivityDashboard = ({ workspaceSlug }: Props) => {
           <div key={activity.id} className="border-b last:border-b-0 px-6 py-4">
             {/* Action */}
             <p className="text-sm leading-relaxed">
-              <span className="font-medium">{activity.actor.user.name}</span> {activityFormat(activity)}
+              <span className="font-medium">{activity.actor.user.name}</span> {formatActivity(activity)}
             </p>
 
             {/* Main Content */}

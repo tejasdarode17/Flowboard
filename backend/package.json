@@ -18,6 +18,7 @@
     "bcryptjs": "^3.0.3",
     "bullmq": "^5.77.6",
     "cloudinary": "^2.10.0",
+    "cookie": "^1.1.1",
     "cookie-parser": "^1.4.7",
     "cors": "^2.8.6",
     "crypto": "^1.0.1",
@@ -33,10 +34,12 @@
     "react-redux": "^9.2.0",
     "resend": "^6.12.3",
     "slugify": "^1.6.9",
+    "socket.io": "^4.8.3",
     "zod": "^4.3.6"
   },
   "devDependencies": {
     "@types/bcryptjs": "^2.4.6",
+    "@types/cookie": "^0.6.0",
     "@types/cookie-parser": "^1.4.10",
     "@types/cors": "^2.8.19",
     "@types/express": "^5.0.6",

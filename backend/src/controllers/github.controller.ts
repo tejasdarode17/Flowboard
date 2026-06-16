@@ -122,8 +122,6 @@ export async function githubWebhookController(req: Request, res: Response, next:
         const supportedEvents: GithubEvent[] = [
             "push",
             "pull_request",
-            "issues",
-            "issue_comment",
         ];
 
         if (!supportedEvents.includes(event as GithubEvent)) {

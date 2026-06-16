@@ -3,10 +3,12 @@ import prisma from "../lib/prisma";
 import AppError from "../utils/AppError";
 import { verifyGitHubState } from "../utils/jwt";
 import { GithubEvent, GithubWebhookPayload, } from "../types/githubWebhook.types";
-import { IssueCommentEvent, IssuesEvent, PullRequestEvent, PushEvent } from "@octokit/webhooks-types";
+import { PullRequestEvent, PushEvent, } from "@octokit/webhooks-types";
 import { extractGithubUsername } from "../utils/githubUtils";
-import { Prisma } from "@prisma/client";
 import { createActivity } from "./activites.services";
+import { createNotification } from "./notification.services";
+import { ActivityAction } from "@prisma/client";
+import { emitToWorkspace } from "../socket/socket";
 
 export function getGithubAuthUrl(state: string) {
     const params = new URLSearchParams({
@@ -38,7 +40,7 @@ export async function handleGithubCallback(code: string, state: string) {
             },
         }
     );
-    
+
     const accessToken = tokenResponse.data.access_token;
 
     if (!accessToken) {
@@ -123,6 +125,7 @@ export async function getExistingGithubWebhook(accessToken: string, repoFullName
     return existingWebhook;
 }
 
+
 //this service used in linkRepositoryToProject not in controller
 export async function createGithubWebhook(accessToken: string, repoFullName: string) {
 
@@ -201,7 +204,6 @@ export async function linkRepositoryToProject(projectId: string, repoId: string,
 }
 
 
-
 export async function processGitHubWebhook(event: GithubEvent, payload: GithubWebhookPayload) {
     const repoFullName = payload.repository.full_name;
 
@@ -233,150 +235,154 @@ export async function processGitHubWebhook(event: GithubEvent, payload: GithubWe
             userId: githubAccount.userId,
             workspaceId: projectGithub.project.workspaceId,
         },
+        include: {
+            user: true
+        }
     });
 
     if (!member) return;
 
-    // ==================================
-    // PUSH
-    // ==================================
+    const workspaceId = projectGithub.project.workspaceId;
+    const projectId = projectGithub.projectId;
 
+    // PUSH
     if (event === "push") {
-        const pushPayload = payload as PushEvent;
+        const push = payload as PushEvent;
 
         await createActivity({
-            workspaceId: projectGithub.project.workspaceId,
-            projectId: projectGithub.projectId,
+            workspaceId,
+            projectId,
+
             actorId: member.id,
 
             action: "PUSH",
 
             entityType: "BRANCH",
-            entityId: pushPayload.ref,
-            entityName: pushPayload.ref.replace("refs/heads/", ""),
-
-            targetType: "PROJECT",
-            targetId: projectGithub.project.id,
-            targetName: projectGithub.project.name,
+            entityId: push.ref,
+            entityName: push.ref.replace("refs/heads/", ""),
 
             metadata: {
-                repository: pushPayload.repository.full_name,
-                commitCount: pushPayload.commits.length,
-                commitMessage: pushPayload.head_commit?.message,
+                repository: push.repository.full_name,
+                commitCount: push.commits.length,
+                commitMessage: push.head_commit?.message,
+                commitSha: push.head_commit?.id?.slice(0, 7),
+                commitUrl: push.head_commit?.url,
+                branch: push.ref.replace("refs/heads/", ""),
             },
         });
 
         return;
     }
 
-    // ==================================
     // PULL REQUEST
-    // ==================================
-
     if (event === "pull_request") {
-        const prPayload = payload as PullRequestEvent;
+        const pr = payload as PullRequestEvent;
 
-        const actionMap: Record<string, string> = {
-            opened: "PR_OPENED",
-            closed: prPayload.pull_request.merged
-                ? "PR_MERGED"
-                : "PR_CLOSED",
-            reopened: "PR_REOPENED",
+        const actionMap: Record<string, ActivityAction | null> = {
+            opened: ActivityAction.PR_OPENED,
+            closed: pr.pull_request.merged ? ActivityAction.PR_MERGED : ActivityAction.PR_CLOSED,
+            reopened: ActivityAction.PR_REOPENED,
         };
 
-        const activityAction =
-            actionMap[prPayload.action];
+        const action = actionMap[pr.action];
 
-        if (!activityAction) return;
-
-        await createActivity({
-            workspaceId: projectGithub.project.workspaceId,
-            projectId: projectGithub.projectId,
-            actorId: member.id,
-
-            action: activityAction,
-
-            entityType: "PULL_REQUEST",
-            entityId: String(prPayload.number),
-            entityName: prPayload.pull_request.title,
-
-            targetType: "PROJECT",
-            targetId: projectGithub.project.id,
-            targetName: projectGithub.project.name,
-
-            metadata: {
-                number: prPayload.number,
-                url: prPayload.pull_request.html_url,
-            },
-        });
-
-        return;
-    }
-
-    // ==================================
-    // ISSUE
-    // ==================================
-
-    if (event === "issues") {
-        const issuePayload = payload as IssuesEvent;
-
-        const actionMap: Record<string, string> = {
-            opened: "ISSUE_CREATED",
-            closed: "ISSUE_COMPLETED",
-            reopened: "ISSUE_REOPENED",
-        };
-
-        const activityAction =
-            actionMap[issuePayload.action];
-
-        if (!activityAction) return;
-
-        await createActivity({
-            workspaceId: projectGithub.project.workspaceId,
-            projectId: projectGithub.projectId,
-            actorId: member.id,
-
-            action: activityAction,
-
-            entityType: "ISSUE",
-            entityId: String(issuePayload.issue.number),
-            entityName: issuePayload.issue.title,
-
-            targetType: "PROJECT",
-            targetId: projectGithub.project.id,
-            targetName: projectGithub.project.name,
-        });
-
-        return;
-    }
-
-    // ==================================
-    // ISSUE COMMENT
-    // ==================================
-
-    if (event === "issue_comment") {
-        
-        const commentPayload = payload as IssueCommentEvent;
-
-        if (commentPayload.action !== "created") {
+        if (!action) {
             return;
         }
 
-        await createActivity({
-            workspaceId: projectGithub.project.workspaceId,
-            projectId: projectGithub.projectId,
-            actorId: member.id,
+        await prisma.$transaction(async (tx) => {
+            await createActivity(
+                {
+                    workspaceId,
+                    projectId,
 
-            action: "COMMENT_ADDED",
+                    actorId: member.id,
 
-            entityType: "ISSUE",
-            entityId: String(commentPayload.issue.number),
-            entityName: commentPayload.issue.title,
+                    action,
 
-            targetType: "PROJECT",
-            targetId: projectGithub.project.id,
-            targetName: projectGithub.project.name,
+                    entityType: "PULL_REQUEST",
+                    entityId: String(pr.number),
+                    entityName: pr.pull_request.title,
+
+                    metadata: {
+                        number: pr.number,
+                        url: pr.pull_request.html_url,
+                        repository: pr.repository.full_name,
+                        sourceBranch: pr.pull_request.head.ref,
+                        targetBranch: pr.pull_request.base.ref,
+                    },
+                },
+                tx
+            );
         });
+
+        if (action === "PR_MERGED") {
+            try {
+                const members = await prisma.member.findMany({
+                    where: {
+                        workspaceId,
+                        NOT: {
+                            id: member.id,
+                        },
+                    },
+                });
+
+                await Promise.all(
+                    members.map((m) =>
+                        createNotification({
+                            memberId: m.id,
+
+                            workspaceId,
+                            projectId,
+
+                            title: "Pull Request Merged",
+
+                            message: `${pr.pull_request.title} was merged`,
+
+                            type: "PR_MERGED",
+
+                            entityId: String(pr.number),
+                            entityType: "PULL_REQUEST",
+
+                            metadata: {
+                                number: pr.number,
+                                url: pr.pull_request.html_url,
+                                repository: pr.repository.full_name,
+                                sourceBranch: pr.pull_request.head.ref,
+                                targetBranch: pr.pull_request.base.ref,
+                            },
+                        })
+                    )
+                );
+
+                emitToWorkspace(workspaceId, "notification:new", {
+                    workspaceId: workspaceId,
+                    projectId,
+                    title: "Pull Request Merged",
+                    message: `${member.user.name} Merged Pull Request in ${projectGithub.project.name}`,
+
+                    type: "PR_MERGED",
+
+                    entityId: String(pr.number),
+                    entityType: "PULL_REQUEST",
+
+                    metadata: {
+                        url: pr.pull_request.html_url,
+                        prNumber: pr.number,
+                        mergedBy: member.id,
+                        mergedByName: member.user.name,
+                        sourceBranch: pr.pull_request.head.ref,
+                        targetBranch: pr.pull_request.base.ref,
+                    },
+                })
+
+            } catch (error) {
+                console.error(
+                    "Failed to create PR notifications",
+                    error
+                );
+            }
+        }
 
         return;
     }

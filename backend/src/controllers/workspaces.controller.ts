@@ -180,35 +180,24 @@ export async function updateMemberRoleController(req: Request, res: Response, ne
         const targetMemberId = req.params.memberId;
 
         if (!targetMemberId || Array.isArray(targetMemberId)) {
-            return next(
-                new AppError("Member id is required", 400)
-            );
+            return next(new AppError("Member id is required", 400));
         }
 
         const workspace = req.workspace;
         const actor = req.member;
 
         if (!workspace) {
-            return next(
-                new AppError("Workspace not found", 404)
-            );
+            return next(new AppError("Workspace not found", 404));
         }
 
         if (!actor) {
-            return next(
-                new AppError("Unauthorized", 401)
-            );
+            return next(new AppError("Unauthorized", 401));
         }
 
         const role = req.body.role;
 
         if (role !== Role.ADMIN && role !== Role.MEMBER) {
-            return next(
-                new AppError(
-                    "Role must be ADMIN or MEMBER",
-                    400
-                )
-            );
+            return next(new AppError("Role must be ADMIN or MEMBER", 400));
         }
 
         const member = await updateMemberRole(

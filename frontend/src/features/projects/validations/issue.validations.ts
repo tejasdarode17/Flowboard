@@ -5,7 +5,7 @@ export const createIssueSchema = z.object({
     description: z.string().max(100, "Description too long").optional(),
     status: z.enum(["TODO", "IN_PROGRESS", "DONE"]).optional(),
     priority: z.enum(["Low", "Medium", "High"]),
-    assignedTo: z.string()
+    assignedTo: z.string().min(1, "Assignee is required")
 });
 
 export const updateissueSchema = createIssueSchema.partial();

@@ -19,6 +19,10 @@ import AuthGuard from "./features/auth/components/AuthGuard";
 import PrivateGuard from "./features/auth/components/PrivateGuard";
 import NotFound from "./shared/pages/NotFound";
 import Settings from "./features/settings/pages/Settings";
+import Activities from "./features/activities/pages/Activities";
+import Notifications from "./features/notifications/Notifications";
+
+//profile picture ka icons logogs dashboard be dikhana hai kitne members hai
 
 const appRouter = createBrowserRouter([
   {
@@ -58,6 +62,8 @@ const appRouter = createBrowserRouter([
           { path: "projects/:projectId", element: <ProjectDetails /> },
           { path: "team", element: <Members></Members> },
           { path: "settings", element: <Settings /> },
+          { path: "activities", element: <Activities /> },
+          { path: "notifications", element: <Notifications /> },
         ],
       },
     ],
@@ -67,6 +73,7 @@ const appRouter = createBrowserRouter([
 ]);
 
 const queryClient = new QueryClient();
+
 function App() {
   const dispatch = useAppDispatch();
 

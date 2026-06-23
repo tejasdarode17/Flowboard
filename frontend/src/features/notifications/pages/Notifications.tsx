@@ -1,8 +1,8 @@
 import { useMemo } from "react";
 import { useParams } from "react-router-dom";
 import { Loader2 } from "lucide-react";
-import type { Notification } from "./notification.types";
-import { useNotifications } from "./useNotifications";
+import { useNotifications } from "../hooks/useNotifications";
+import type { Notification } from "../types/notification.types";
 
 const Notifications = () => {
   const { workspaceSlug } = useParams();

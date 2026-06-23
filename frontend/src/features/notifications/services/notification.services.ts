@@ -1,5 +1,5 @@
 import api from "@/api/axiosInstance"
-import type { GetNotificationParams } from "./notification.types"
+import type { GetNotificationParams } from "./types/notification.types"
 
 
 export const getNotifications = async ({ workspaceSlug, cursor, limit }: GetNotificationParams) => {

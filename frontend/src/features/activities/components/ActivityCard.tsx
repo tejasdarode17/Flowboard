@@ -10,7 +10,7 @@ type ActivityCardProps = {
 const ActivityCard = ({ activity }: ActivityCardProps) => {
   const Icon = getActivityIcon(activity.action);
 
-  const user = activity.actor.user;
+  const user = activity?.actor?.user;
 
   const initials =
     user?.name
@@ -27,8 +27,8 @@ const ActivityCard = ({ activity }: ActivityCardProps) => {
       {/* Timeline */}
       <div className="relative flex flex-col items-center shrink-0">
         <div className="z-10 flex h-10 w-10 items-center justify-center overflow-hidden rounded-full border bg-background">
-          {user.avatar ? (
-            <img src={user.avatar} alt={user.name} className="h-full w-full object-cover" />
+          {user?.avatar ? (
+            <img src={user?.avatar} alt={user?.name} className="h-full w-full object-cover" />
           ) : (
             <span className="text-xs font-semibold">{initials}</span>
           )}
@@ -47,7 +47,7 @@ const ActivityCard = ({ activity }: ActivityCardProps) => {
           <div className="min-w-0 flex-1">
             {/* Main sentence */}
             <p className="text-sm leading-relaxed wrap-break-words">
-              <span className="font-semibold">{user.name}</span> {formatActivity(activity)}
+              <span className="font-semibold">{user?.name}</span> {formatActivity(activity)}
             </p>
 
             {projectName && (

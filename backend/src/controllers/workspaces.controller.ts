@@ -1,5 +1,5 @@
 import { NextFunction, Request, Response } from 'express';
-import { acceptWorkspaceInvite, createWorkspace, getMembersOfWorkspace, getWorkspaceDetails, getWorkspaces, inviteMember, removeMember, updateMemberRole, updateWorkspace, validateInviteToken } from '../services/workspace.services';
+import { acceptWorkspaceInvite, createWorkspace, deleteWorkspace, getMembersOfWorkspace, getWorkspaceDetails, getWorkspaces, inviteMember, removeMember, updateMemberRole, updateWorkspace, validateInviteToken } from '../services/workspace.services';
 import AppError from '../utils/AppError';
 import { createWorkspaceSchema, inviteMemberSchema, updateWorkspaceSchema } from '../validations/worksapce.validations';
 import { Role } from '@prisma/client';
@@ -14,7 +14,7 @@ export async function createWorkspaceController(req: Request, res: Response, nex
         const workspace = await createWorkspace(body, userId, file)
 
         return res.status(200).json({
-            success: "true",
+            success: true,
             message: "Workspace created Successfully",
             data: workspace
         })
@@ -33,10 +33,11 @@ export async function getWorkspacesController(req: Request, res: Response, next:
         const workspaces = await getWorkspaces(userId);
 
         return res.status(200).json({
-            success: "true",
+            success: true,
             message: "Workspaces fetched Successfully",
             data: workspaces,
         })
+
     } catch (error) {
         next(error)
     }
@@ -50,7 +51,7 @@ export async function getWorkspaceDetailsController(req: Request, res: Response,
         const workspace = await getWorkspaceDetails(workspaceId)
 
         return res.status(200).json({
-            success: "true",
+            success: true,
             message: "Workspace fetched Successfully",
             data: workspace
         })
@@ -74,7 +75,7 @@ export async function updateWorkspaceController(req: Request, res: Response, nex
         const workspace = await updateWorkspace(body, workspaceId, memberId)
 
         return res.status(200).json({
-            success: "true",
+            success: true,
             message: "Workspace updated Successfully",
             data: workspace
         })
@@ -85,6 +86,18 @@ export async function updateWorkspaceController(req: Request, res: Response, nex
     }
 }
 
+export const deleteWorkspaceController = async (req: Request, res: Response) => {
+
+    const workspaceId = req.workspace.id;
+    if (!workspaceId) throw new AppError("Unauthorized", 401);
+
+    await deleteWorkspace(workspaceId);
+
+    res.status(200).json({
+        success: true,
+        message: "Workspace deleted successfully",
+    });
+};
 
 // ----------------Members of workspace---------------------
 
@@ -96,7 +109,7 @@ export async function getMembersOfWorkspaceController(req: Request, res: Respons
 
         const members = await getMembersOfWorkspace(workspaceId)
         return res.status(200).json({
-            success: "true",
+            success: true,
             message: "Members fetched Successfully",
             data: members
         })
@@ -138,6 +151,7 @@ export async function validateInviteTokenController(req: Request, res: Response,
 
         return res.status(200).json({
             success: true,
+            message: "Token validation successfull",
             data: {
                 email: invite.email,
                 workspaceName: invite.workspace.name,
@@ -166,8 +180,9 @@ export async function acceptInviteController(req: Request, res: Response, next: 
         return res.status(200).json({
             success: true,
             message: "Invite accepted successfully",
-            data: { workspace },
+            data: workspace,
         });
+
     } catch (error) {
         next(error);
     }
@@ -206,6 +221,7 @@ export async function updateMemberRoleController(req: Request, res: Response, ne
             actor.id,
             role
         );
+
 
         return res.status(200).json({
             success: true,

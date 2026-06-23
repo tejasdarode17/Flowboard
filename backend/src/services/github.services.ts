@@ -24,7 +24,7 @@ export function getGithubAuthUrl(state: string) {
 
 export async function handleGithubCallback(code: string, state: string) {
 
-    const { userId, workspaceSlug } = verifyGitHubState(state);
+    const { userId, username } = verifyGitHubState(state);
 
     const params = new URLSearchParams();
     params.append("client_id", process.env.GITHUB_CLIENT_ID!);
@@ -71,7 +71,8 @@ export async function handleGithubCallback(code: string, state: string) {
         },
     });
 
-    return { account, workspaceSlug };
+
+    return { account, username };
 }
 
 
@@ -202,6 +203,52 @@ export async function linkRepositoryToProject(projectId: string, repoId: string,
 
     return projectGithub;
 }
+
+
+export async function unlinkGithubAccount(userId: string) {
+    const githubAccount = await prisma.githubAccount.findUnique({
+        where: { userId },
+    });
+    if (!githubAccount) throw new AppError("GitHub account not connected", 400);
+    await prisma.githubAccount.delete({ where: { userId } });
+}
+
+
+export async function unlinkRepositoryFromProject(projectId: string, userId: string) {
+    const projectGithub = await prisma.projectGithub.findUnique({
+        where: { projectId },
+    });
+
+    if (!projectGithub) throw new AppError("No repository linked to this project", 400);
+
+    const githubAccount = await prisma.githubAccount.findUnique({
+        where: { userId },
+    });
+
+    if (!githubAccount) throw new AppError("GitHub account not connected", 400);
+
+    // webhook delete from github
+    if (projectGithub.webhookId) {
+        const [owner, repo] = projectGithub.repoFullName.split("/");
+        try {
+            await axios.delete(
+                `https://api.github.com/repos/${owner}/${repo}/hooks/${projectGithub.webhookId}`,
+                {
+                    headers: {
+                        Authorization: `Bearer ${githubAccount.accessToken}`,
+                        Accept: "application/vnd.github+json",
+                    },
+                }
+            );
+        } catch (error) {
+            console.error("Failed to delete webhook", error);
+        }
+    }
+
+    await prisma.projectGithub.delete({ where: { projectId } });
+}
+
+
 
 
 export async function processGitHubWebhook(event: GithubEvent, payload: GithubWebhookPayload) {
@@ -387,3 +434,55 @@ export async function processGitHubWebhook(event: GithubEvent, payload: GithubWe
         return;
     }
 }
+
+
+
+
+// agar wohi banda unlink karta hai account jiske account se project link hai to webhook bhi delete hojana chahiye
+//but ham aisa nahi kar rahe hai qki apne system me github events bhejenga agar baki members perform karte hai to
+//and agar wo member link hai to events ki activity bhi create hogi
+// export async function unlinkGithubAccount(userId: string) {
+//   const githubAccount = await prisma.githubAccount.findUnique({
+//     where: { userId },
+//   });
+
+//   if (!githubAccount) {
+//     throw new AppError("GitHub account not connected", 400);
+//   }
+
+//   const linkedRepos = await prisma.projectGithub.findMany();
+
+//   for (const repo of linkedRepos) {
+//     if (!repo.webhookId) continue;
+
+//     const [owner, repository] = repo.repoFullName.split("/");
+
+//     try {
+//       await axios.delete(
+//         `https://api.github.com/repos/${owner}/${repository}/hooks/${repo.webhookId}`,
+//         {
+//           headers: {
+//             Authorization: `Bearer ${githubAccount.accessToken}`,
+//             Accept: "application/vnd.github+json",
+//           },
+//         }
+//       );
+//     } catch (error) {
+//       console.error(
+//         `Failed to delete webhook for ${repo.repoFullName}`,
+//         error
+//       );
+//     }
+//   }
+
+//   await prisma.projectGithub.deleteMany();
+
+//   await prisma.githubAccount.delete({
+//     where: { userId },
+//   });
+
+//   return {
+//     success: true,
+//     message: "GitHub account disconnected successfully",
+//   };
+// }

@@ -4,7 +4,7 @@ import { CreateWorkspaceInput, UpdateWorkspaceInput } from "./../validations/wor
 import prisma from "../lib/prisma";
 import AppError from "../utils/AppError";
 import slugify from "slugify";
-import { uploadImageToCloudinary } from '../utils/cloudinaryHandler';
+import { deleteImageFromCloudinary, uploadImageToCloudinary } from '../utils/cloudinaryHandler';
 import { sendInviteEmail } from '../utils/mailer';
 import { createActivity } from './activites.services';
 import { createNotification } from './notification.services';
@@ -54,7 +54,7 @@ export async function createWorkspace(data: CreateWorkspaceInput, userId: string
   });
 
 
-  return workspace;
+  return { ...workspace, role: "OWNER" };
 };
 
 
@@ -64,8 +64,16 @@ export async function updateWorkspace(data: UpdateWorkspaceInput, workspaceId: s
     where: { id: workspaceId },
   });
 
+  const member = await prisma.member.findUnique({
+    where: { id: memberId }
+  })
+
   if (!workspace) {
     throw new AppError("Workspace not found", 404);
+  }
+
+  if (!member) {
+    throw new AppError("You art part of the workspace", 403);
   }
 
   const updatedData: Prisma.WorkspaceUpdateInput = {};
@@ -130,7 +138,7 @@ export async function updateWorkspace(data: UpdateWorkspaceInput, workspaceId: s
     return updatedWorkspace;
   });
 
-  return updatedWorkspace;
+  return { ...updatedWorkspace, role: member.role };
 
 }
 
@@ -178,18 +186,18 @@ export async function getWorkspaceDetails(workspaceId: string) {
 
 
 export async function deleteWorkspace(workspaceId: string) {
+  const workspace = await prisma.workspace.findUnique({
+    where: { id: workspaceId },
+  });
 
-  const workspace = await prisma.workspace.delete({ where: { id: workspaceId } })
+  if (!workspace) throw new AppError("Workspace not found", 404);
 
+  if (workspace.logoId) {
+    await deleteImageFromCloudinary(workspace.logoId);
+  }
 
-  // CASCADE DEKHNA HAI KAL 
-
-  // ONE DELETE EVRUTHING SHOULD BE DELETE 
-  // NO ORPHAN DATA
-
-
-};
-
+  await prisma.workspace.delete({ where: { id: workspaceId } });
+}
 
 
 // ----------------Members of workspace---------------------
@@ -246,7 +254,7 @@ export async function inviteMember(workspaceId: string, email: string, role: Rol
 
   // Token generate
   const token = crypto.randomBytes(32).toString("hex");
-  const expiresAt = new Date(Date.now() + 1000 * 60 * 60 * 48); // 48 hours
+  const expiresAt = new Date(Date.now() + 1000 * 60 * 60 * 48);
 
   const invite = await prisma.workspaceInvite.create({
     data: { email, workspaceId, role, token, expiresAt },
@@ -349,7 +357,6 @@ export async function acceptWorkspaceInvite(token: string, userId: string) {
           message: `${user.name} joined ${workspace.name}`,
 
           type: "MEMBER_JOINED",
-
           entityId: result.id,
           entityType: "MEMBER",
 
@@ -392,6 +399,7 @@ export async function acceptWorkspaceInvite(token: string, userId: string) {
 
 
 export async function removeMember(workspaceId: string, targetMemberId: string, actorMemberId: string) {
+
   const actor = await prisma.member.findUnique({
     where: { id: actorMemberId },
   });
@@ -475,6 +483,8 @@ export async function updateMemberRole(workspaceId: string, targetMemberId: stri
     },
   });
 
+
+
   if (!actor || !target) {
     throw new AppError("Member not found", 404);
   }
@@ -486,6 +496,7 @@ export async function updateMemberRole(workspaceId: string, targetMemberId: stri
   if (actor.role !== "OWNER") {
     throw new AppError("Only workspace owner can change roles", 403);
   }
+
 
   if (actor.id === target.id) {
     throw new AppError("You cannot change your own role", 400);

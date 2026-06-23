@@ -7,6 +7,7 @@ export const useActivities = (workspaceSlug: string, range?: "today" | "week" | 
         initialPageParam: null,
         queryFn: ({ pageParam }) => getActivities({ workspaceSlug, range, cursor: pageParam, limit: 20, }),
         getNextPageParam: (lastPage) => lastPage.nextCursor ?? undefined,
+        staleTime: Infinity
     });
 };
 

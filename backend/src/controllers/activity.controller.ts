@@ -17,8 +17,9 @@ export async function getActivitiesController(req: Request, res: Response, next:
         return res.status(200).json({
             success: true,
             data: activities,
+            message: "Activities fetched successfully"
         });
-        
+
     } catch (error) {
         next(error);
     }
@@ -40,31 +41,3 @@ export async function getRecentActivitiesController(req: Request, res: Response,
     }
 }
 
-
-
-
-
-
-
-
-
-
-
-
-// export async function getProjectActivitiesController(req: Request, res: Response, next: NextFunction) {
-//     try {
-//         const { projectId } = req.params;
-
-//         if (!projectId || Array.isArray(projectId)) {
-//             return next(new AppError("Workspace Id is required", 401))
-//         }
-//         const activities = await getProjectRecentActivities(projectId);
-
-//         return res.status(200).json({
-//             success: true,
-//             data: activities,
-//         });
-//     } catch (error) {
-//         next(error);
-//     }
-// }

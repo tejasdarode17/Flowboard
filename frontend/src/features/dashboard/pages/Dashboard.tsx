@@ -4,7 +4,6 @@ import { useProjects } from "@/features/projects/hooks/useProjects";
 import CreateProject from "@/features/projects/components/CreateProject";
 import InviteMember from "@/features/workspace/components/InviteMember";
 import { useWorkspacesDetails } from "@/features/workspace/hooks/useWorkspaceDetails";
-import WorkspaceActivityDashboard from "../components/WorkspaceActivitiesDashboard";
 import RecentProjectsDashboard from "../components/RecentProjectsDashboard";
 import MainLoder from "@/shared/components/MainLoder";
 import MyIssuesDashboard from "../components/MyIssuesDashboard";
@@ -15,6 +14,8 @@ const Dashboard = () => {
   const { data: workspace, isLoading: workspaceLoading } = useWorkspacesDetails(workspaceSlug || "");
   const { data: projects, isLoading: projectsLoading } = useProjects(workspaceSlug || "");
   const { data: members, isLoading: membersLoading } = useMembers(workspaceSlug || "");
+
+  const isOwnerOrAdmin = workspace?.role == "ADMIN" || workspace?.role == "OWNER";
 
   const totalProjects = projects?.length || 0;
   const totalMembers = members?.length || 0;
@@ -50,19 +51,18 @@ const Dashboard = () => {
         </div>
 
         {/* Quick Actions */}
-        <div className="flex items-center gap-2 shrink-0">
-          <InviteMember />
-          <CreateProject />
-        </div>
+        {isOwnerOrAdmin && (
+          <div className="flex items-center gap-2 shrink-0">
+            <InviteMember />
+            <CreateProject />
+          </div>
+        )}
       </div>
 
       {/* Dashboard Grid */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         <RecentProjectsDashboard workspaceSlug={workspaceSlug!} />
         <MyIssuesDashboard workspaceSlug={workspaceSlug!} />
-        <div className="lg:col-span-2">
-          <WorkspaceActivityDashboard workspaceSlug={workspaceSlug!} />
-        </div>
       </div>
     </div>
   );

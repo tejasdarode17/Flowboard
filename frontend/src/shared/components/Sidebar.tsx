@@ -13,7 +13,7 @@ import axios from "axios";
 import { clearUser } from "@/redux/authSlice";
 import { useAppDispatch } from "../hooks/useAppDispatch";
 import MemberBadge from "@/features/workspace/components/MemberBadge";
-import NotificationBell from "@/features/notifications/NotificationBell";
+import NotificationBell from "@/features/notifications/components/NotificationBell";
 
 const Sidebar = () => {
   return (
@@ -34,46 +34,40 @@ export const SideBarContent = () => {
 
   const { workspaceSlug } = useParams();
   const { data: workspaces, isLoading } = useWorkspaces();
-
-  const currentWorkspace = workspaces?.find((ws) => ws.slug === workspaceSlug);
+  const lastSlug = localStorage.getItem("lastWorkspace");
+  const currentWorkspace = workspaces?.find((ws) => ws.slug === (workspaceSlug ?? lastSlug));
 
   const navItems = [
     {
       label: "Overview",
       icon: LayoutGrid,
-      path: `/${workspaceSlug}`,
+      path: `/${workspaceSlug ?? lastSlug}`,
       shortcut: "1",
     },
     {
       label: "Projects",
       icon: FolderKanban,
-      path: `/${workspaceSlug}/projects`,
+      path: `/${workspaceSlug ?? lastSlug}/projects`,
       shortcut: "2",
     },
     {
       label: "Members",
       icon: Users2,
-      path: `/${workspaceSlug}/team`,
+      path: `/${workspaceSlug ?? lastSlug}/team`,
       shortcut: "3",
     },
     {
       label: "Settings",
       icon: Settings,
-      path: `/${workspaceSlug}/settings`,
+      path: `/${workspaceSlug ?? lastSlug}/settings`,
       shortcut: "4",
     },
     {
       label: "Activity",
       icon: Activity,
-      path: `/${workspaceSlug}/activities`,
+      path: `/${workspaceSlug ?? lastSlug}/activities`,
       shortcut: "5",
     },
-    // {
-    //   label: "Notifications",
-    //   icon: EarthIcon,
-    //   path: `/${workspaceSlug}/notifications`,
-    //   shortcut: "5",
-    // },
   ];
 
   function handleWorkspaceSelect(slug: string) {
@@ -84,6 +78,7 @@ export const SideBarContent = () => {
   async function handleLogout() {
     try {
       setLogoutLoading(true);
+      console.log("fired");
       await axios.post(`${import.meta.env.VITE_BACKEND_URL}/api/auth/logout`, {}, { withCredentials: true });
       dispatch(clearUser());
       navigate("/auth");
@@ -226,7 +221,10 @@ export const SideBarContent = () => {
 
         {/* User section */}
         <div className="px-2">
-          <button className="w-full flex items-center gap-2.5 px-3 py-2 rounded-lg hover:bg-accent/50 transition-all duration-150 group">
+          <button
+            onClick={() => userData?.id && navigate(`/profile/${userData.username}`)}
+            className="w-full flex items-center gap-2.5 px-3 py-2 rounded-lg hover:bg-accent/50 transition-all duration-150 group"
+          >
             <Avatar className="h-7 w-7 rounded-lg border border-border/50">
               <AvatarImage src={userData?.avatar ?? ""} />
               <AvatarFallback className="bg-accent text-[11px] font-semibold rounded-lg">
@@ -243,7 +241,7 @@ export const SideBarContent = () => {
 
           <Button
             variant="ghost"
-            onClick={() => handleLogout()}
+            onClick={handleLogout}
             disabled={logoutLoading}
             className="mt-2 w-full justify-start gap-2.5 px-3 h-9 rounded-lg text-[13px] text-muted-foreground hover:text-foreground hover:bg-accent/50"
           >

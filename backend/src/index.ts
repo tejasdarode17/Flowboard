@@ -10,6 +10,7 @@ import projectRoutes from "./routes/project.routes"
 import issueRoutes from "./routes/issues.routes"
 import githubRoutes from "./routes/github.routes"
 import webhooksRoutes from "./routes/webhook.routes"
+import userRoutes from "./routes/user.routes"
 import activityRoutes from "./routes/activities.routes"
 import notificationsRoutes from './routes/notifications.routes'
 import errorMiddleware from "./middlewares/error.middleware";
@@ -25,6 +26,7 @@ const httpServer = http.createServer(app)
 const PORT = process.env.PORT || 8000;
 
 app.set('trust proxy', 1);
+
 
 app.use(
   cors({
@@ -51,6 +53,7 @@ app.use("/api/workspace", issueRoutes)
 app.use("/api/github", githubRoutes)
 app.use("/api/workspace", activityRoutes);
 app.use("/api/workspace/", notificationsRoutes)
+app.use("/api/user", userRoutes)
 app.use(errorMiddleware);
 
 initSocket(httpServer);

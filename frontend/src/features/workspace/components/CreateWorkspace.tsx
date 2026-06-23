@@ -1,7 +1,7 @@
 import { Building2 } from "lucide-react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import WorkspaceForm from "./WorkspaceForm";
-import { useWrokspaceCreate } from "../hooks/useWorkspaceCreate";
+import { useCreateWorkspace } from "../hooks/useCreateWorkspace";
 
 type CreateWorkspaceProps = {
   open: boolean;
@@ -9,7 +9,7 @@ type CreateWorkspaceProps = {
 };
 
 const CreateWorkspace = ({ open, setOpen }: CreateWorkspaceProps) => {
-  const { mutateAsync, isPending } = useWrokspaceCreate(() => setOpen(false));
+  const { mutateAsync, isPending } = useCreateWorkspace(() => setOpen(false));
 
   async function handleSubmit(data: FormData) {
     return mutateAsync(data);

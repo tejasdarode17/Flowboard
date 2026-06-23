@@ -16,7 +16,6 @@ const LinkRepository = ({ projectId }: LinkRepositoresProps) => {
   const [open, setOpen] = useState(false);
   const { workspaceSlug } = useParams();
   const { data: repos, isLoading } = useGithubRepositories();
-
   const { mutateAsync, isPending } = useLinkRepository(workspaceSlug!, projectId!);
 
   async function handleLinkRepo(repoId: string, repoFullName: string) {
@@ -40,6 +39,8 @@ const LinkRepository = ({ projectId }: LinkRepositoresProps) => {
     }
   }
 
+  const noRepo = repos?.length === 0 || repos === undefined || repos === null;
+
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
@@ -53,9 +54,13 @@ const LinkRepository = ({ projectId }: LinkRepositoresProps) => {
         <DialogHeader>
           <DialogTitle>Select Repository</DialogTitle>
         </DialogHeader>
-
         {isLoading ? (
           <Loader2 className="w-full flex justify-center items-center animate-spin" />
+        ) : noRepo ? (
+          <div>
+            <p>No repositories found.</p>
+            <p>Or your github account might not linked</p>
+          </div>
         ) : (
           <div className="space-y-2">
             {repos?.map((repo: GithubRepository) => (

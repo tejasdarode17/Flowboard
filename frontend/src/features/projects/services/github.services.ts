@@ -11,3 +11,8 @@ export const linkRepositoryApi = async ({ workspaceSlug, data }: LinkRepositoryP
     return response.data
 };
 
+export const unlinkRepositoryApi = async (workspaceSlug: string, projectId: string) => {
+    const { data: response } = await api.delete(`/api/github/${workspaceSlug}/project/${projectId}`);
+    return response.data
+};
+

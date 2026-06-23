@@ -12,13 +12,14 @@ import { acceptInviteApi, validateInviteTokenApi } from "../services/workspace.s
 import { clearUser } from "@/redux/authSlice";
 import FlowBoardLogo from "@/shared/icons/FlowBoardLogo";
 import ErrorMessage from "@/shared/components/ErrorMessage";
+import { inviteToken } from "@/shared/utils/inviteToken";
 
 const Invite = () => {
   const { token } = useParams();
   const navigate = useNavigate();
   const dispatch = useAppDispatch();
   const queryClient = useQueryClient();
-  const user = useAppSelector((state) => state.auth.userData);
+  const { userData } = useAppSelector((state) => state.auth);
   const [errors, setErrors] = useState<Record<string, string>>({});
 
   const {
@@ -36,7 +37,8 @@ const Invite = () => {
     mutationFn: () => acceptInviteApi(token!),
     onSuccess: async (data) => {
       await queryClient.invalidateQueries({ queryKey: ["workspaces"] });
-      navigate(`/${data.workspace.slug}`);
+      inviteToken.clear();
+      navigate(`/${data?.workspace?.slug}`);
     },
     onError: (err) => {
       const parsed = apiErrors(err);
@@ -46,6 +48,7 @@ const Invite = () => {
 
   async function handleSwitchAccount() {
     dispatch(clearUser());
+    inviteToken.set(token!);
     navigate(`/auth?invite=${token}`);
   }
 
@@ -136,23 +139,23 @@ const Invite = () => {
 
             {/* Actions */}
             <div className="mt-6 space-y-3">
-              {user ? (
+              {userData ? (
                 <>
-                  {/* Current user info */}
+                  {/* Current userData info */}
                   <div className="flex items-center gap-3 px-3 py-2.5 rounded-xl bg-muted/30 border border-border/30">
                     <Avatar className="h-8 w-8 rounded-lg border border-border/40 shrink-0">
-                      <AvatarImage src={user.avatar ?? ""} className="rounded-lg" />
+                      <AvatarImage src={userData.avatar ?? ""} className="rounded-lg" />
                       <AvatarFallback className="bg-accent text-[11px] font-semibold rounded-lg">
-                        {user.name?.charAt(0).toUpperCase()}
+                        {userData.name?.charAt(0).toUpperCase()}
                       </AvatarFallback>
                     </Avatar>
                     <div className="min-w-0 flex-1">
-                      <p className="text-[12px] font-medium truncate">{user.name}</p>
-                      <p className="text-[11px] text-muted-foreground truncate">{user.email}</p>
+                      <p className="text-[12px] font-medium truncate">{userData.name}</p>
+                      <p className="text-[11px] text-muted-foreground truncate">{userData.email}</p>
                     </div>
                   </div>
 
-                  {user.email !== invite.email ? (
+                  {userData.email !== invite.email ? (
                     <div className="space-y-3">
                       <div className="flex items-start gap-2.5 px-3 py-2.5 rounded-xl bg-amber-500/5 border border-amber-500/20">
                         <AlertCircle size={14} className="text-amber-500 mt-0.5 shrink-0" />
@@ -167,7 +170,12 @@ const Invite = () => {
                       </Button>
                     </div>
                   ) : (
-                    <Button variant="outline" className="w-full pt-2 rounded-xl h-10 gap-2" disabled={isPending} onClick={() => acceptInvite()}>
+                    <Button
+                      variant="outline"
+                      className="w-full pt-2 rounded-xl h-10 gap-2"
+                      disabled={isPending}
+                      onClick={() => acceptInvite()}
+                    >
                       {isPending ? (
                         <>
                           <Loader2 size={15} className="animate-spin" />
@@ -187,7 +195,10 @@ const Invite = () => {
                   <Button
                     variant="outline"
                     className="w-full rounded-xl h-10 gap-2"
-                    onClick={() => navigate(`/auth/register?invite=${token}`)}
+                    onClick={() => {
+                      inviteToken.set(token!);
+                      navigate(`/auth/register?invite=${token}`);
+                    }}
                   >
                     <UserPlus size={15} />
                     Create account & Join
@@ -202,7 +213,14 @@ const Invite = () => {
                     </div>
                   </div>
 
-                  <Button variant="outline" className="w-full rounded-xl h-10" onClick={() => navigate(`/auth?invite=${token}`)}>
+                  <Button
+                    variant="outline"
+                    className="w-full rounded-xl h-10"
+                    onClick={() => {
+                      inviteToken.set(token!);
+                      navigate(`/auth?invite=${token}`);
+                    }}
+                  >
                     Login & Join
                     <ArrowRight size={15} className="ml-2" />
                   </Button>

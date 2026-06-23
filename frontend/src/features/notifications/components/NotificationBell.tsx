@@ -1,7 +1,8 @@
 import { useNavigate, useParams } from "react-router-dom";
 import { Bell } from "lucide-react";
-import { useNotificationAllRead } from "./useNotificationAllRead";
-import { useNotificationUnreadCount } from "./useNotificationUnreadCount";
+import { useNotificationAllRead } from "../hooks/useNotificationAllRead";
+import { useNotificationUnreadCount } from "../hooks/useNotificationUnreadCount";
+
 
 const NotificationBell = () => {
   const { workspaceSlug } = useParams();

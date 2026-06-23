@@ -1,6 +1,6 @@
 import { NextFunction, Request, Response } from "express";
-import { getCurrentUser, getNewTokens, googleAuth, loginUser, registerUser } from "../services/auth.services";
-import { loginSchema, registrationSchema } from "../validations/auth.validations";
+import { changeEmailOtp, changePasswordOtp, forgetPasswordOtp, getCurrentUser, getNewTokens, googleAuth, loginUser, registerUser, resetPassword, validateUserSignup, verifyEmail, verifyResetPasswordOtp, } from "../services/auth.services";
+import { emailSchema, loginSchema, registrationSchema, resetPasswordSchema, verifyEmailSchema, verifyOtpSchema } from "../validations/auth.validations";
 import AppError from "../utils/AppError";
 import admin from "../config/firebase";
 import { generateAccessToken, generateRefreshToken } from "../utils/jwt";
@@ -10,10 +10,26 @@ const isProduction = process.env.NODE_ENV === "production";
 
 export async function register(req: Request, res: Response, next: NextFunction) {
   try {
-    const body = registrationSchema.parse(req.body);
-    const data = await registerUser(body);
-    const { user, accessToken, refreshToken } = data;
 
+    const body = registrationSchema.parse(req.body);
+    await registerUser(body);
+
+    return res.status(200).json({
+      success: true,
+      message: "Otp Sent Successfully",
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+export async function validateUserController(req: Request, res: Response, next: NextFunction) {
+  try {
+
+    const body = verifyOtpSchema.parse(req.body)
+    const { email, otp } = body
+    const data = await validateUserSignup(email, otp)
+    const { user, accessToken, refreshToken } = data
 
     res.cookie("accessToken", accessToken, {
       httpOnly: true,
@@ -31,6 +47,7 @@ export async function register(req: Request, res: Response, next: NextFunction) 
       path: "/",
     });
 
+
     return res.status(200).json({
       success: true,
       message: "User Registred Succesfully",
@@ -38,9 +55,10 @@ export async function register(req: Request, res: Response, next: NextFunction) 
     });
 
   } catch (error) {
-    next(error);
+    next(error)
   }
-};
+}
+
 
 
 export async function login(req: Request, res: Response, next: NextFunction) {
@@ -146,6 +164,8 @@ export async function getMe(req: Request, res: Response, next: NextFunction) {
 };
 
 
+
+
 export async function refreshToken(req: Request, res: Response, next: NextFunction) {
   try {
     const refreshTokenFromReq = req.cookies.refreshToken;
@@ -208,4 +228,104 @@ export async function logout(req: Request, res: Response, next: NextFunction) {
   }
 };
 
+
+export async function forgetPasswordOtpController(req: Request, res: Response, next: NextFunction) {
+  try {
+    const { email } = emailSchema.parse(req.body)
+    const result = await forgetPasswordOtp(email);
+
+    return res.status(200).json({
+      success: true,
+      message: result.message,
+    });
+  } catch (error) {
+    next(error);
+  }
+}
+
+export async function changePasswordOtpController(req: Request, res: Response, next: NextFunction) {
+  try {
+    const userId = req.user?.userId;
+    if (!userId) return next(new AppError("Not authenticated", 401));
+
+    const result = await changePasswordOtp(userId);
+
+    return res.status(200).json({
+      success: true,
+      message: result.message
+    });
+
+  } catch (error) {
+    next(error);
+  }
+}
+
+export async function verifyOtpForPasswordCntroller(req: Request, res: Response, next: NextFunction) {
+  try {
+    const data = verifyOtpSchema.parse(req.body)
+
+    const result = await verifyResetPasswordOtp(data)
+
+    return res.status(200).json({
+      success: true,
+      message: result.message
+    });
+  } catch (error) {
+    next(error)
+  }
+}
+
+
+export async function resetPasswordController(req: Request, res: Response, next: NextFunction) {
+  try {
+
+    const data = resetPasswordSchema.parse(req.body)
+    const result = await resetPassword(data);
+
+    return res.status(200).json({
+      success: true,
+      message: result.message
+    });
+
+  } catch (error) {
+    next(error);
+  }
+}
+
+export const changeEmailController = async (req: Request, res: Response, next: NextFunction) => {
+  try {
+
+    const userId = req.user?.userId;
+    if (!userId) throw new AppError("Unauthorized", 401);
+
+    const data = emailSchema.parse(req.body)
+
+    const result = await changeEmailOtp(data.email, userId);
+
+    res.status(200).json({
+      success: true,
+      message: result.message
+    });
+
+  } catch (error) {
+    next(error)
+  }
+};
+
+
+export const verifyChangeEmailController = async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const data = verifyEmailSchema.parse(req.body)
+
+    const result = await verifyEmail(data);
+
+    res.status(200).json({
+      success: true,
+      message: result.message
+    });
+
+  } catch (error) {
+    next(error)
+  }
+};
 

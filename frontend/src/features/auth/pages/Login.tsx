@@ -1,5 +1,5 @@
 import { useState, type FormEvent } from "react";
-import { Link, useNavigate, useSearchParams } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { Eye, EyeOff, ArrowRight, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -13,6 +13,7 @@ import FlowBoardLogo from "@/shared/icons/FlowBoardLogo";
 import GoogleIcon from "@/shared/icons/GoogleIcon";
 import { useGoogleLogin } from "../hooks/useGoogleLogin";
 import ErrorMessage from "@/shared/components/ErrorMessage";
+import { inviteToken } from "@/shared/utils/inviteToken";
 
 export default function Login() {
   const [form, setForm] = useState<LoginInput>({
@@ -32,9 +33,8 @@ export default function Login() {
 
   const navigate = useNavigate();
   const dispatch = useAppDispatch();
-  const [searchParams] = useSearchParams();
+  const token = inviteToken.get();
 
-  const inviteToken = searchParams.get("invite");
   async function handleSubmit(e: FormEvent) {
     try {
       e.preventDefault();
@@ -48,14 +48,8 @@ export default function Login() {
       }
 
       await api.post("/api/auth/login", form);
-      await dispatch(checkAuth());
-
-      const inviteToken = searchParams.get("invite");
-      if (inviteToken) {
-        navigate(`/invite/${inviteToken}`);
-      } else {
-        navigate("/");
-      }
+      await dispatch(checkAuth()).unwrap();
+      navigate(token ? `/invite/${token}` : "/");
     } catch (error: unknown) {
       console.log(error);
       const err = apiErrors(error);
@@ -65,27 +59,18 @@ export default function Login() {
     }
   }
 
-
   const { mutateAsync: handleGoolgeLogin } = useGoogleLogin();
   async function googleLogin() {
     try {
       await handleGoolgeLogin();
-      await dispatch(checkAuth());
-
-      const inviteToken = searchParams.get("invite");
-      if (inviteToken) {
-        navigate(`/invite/${inviteToken}`);
-      } else {
-        navigate("/");
-      }
+      await dispatch(checkAuth()).unwrap();
+      navigate(token ? `/invite/${token}` : "/");
     } catch (error) {
       const err = apiErrors(error);
       console.log(err);
       setErrors(err);
     }
   }
-
-
 
   return (
     <div className="min-h-screen">
@@ -128,9 +113,7 @@ export default function Login() {
                 <Input
                   id="email"
                   name="emailOrUsername"
-                  type="email"
-                  autoComplete="email"
-                  placeholder="you@company.com"
+                  placeholder="email or username"
                   value={form.emailOrUsername}
                   onChange={handleChange}
                   disabled={loading}
@@ -144,9 +127,12 @@ export default function Login() {
               <div className="space-y-1.5">
                 <div className="flex items-center justify-between">
                   <Label htmlFor="password">Password</Label>
-                  <button type="button" className="text-xs text-primary font-dm hover:underline underline-offset-2">
+                  <Link
+                    to={"/auth/forgot-password"}
+                    className="text-xs text-muted-foreground hover:text-primary transition-colors hover:underline underline-offset-2"
+                  >
                     Forgot password?
-                  </button>
+                  </Link>
                 </div>
                 <div className="relative">
                   <Input
@@ -193,10 +179,7 @@ export default function Login() {
             {/* footer */}
             <p className="mt-6 text-center text-xs text-muted-foreground font-dm">
               Don&apos;t have an account?{" "}
-              <Link
-                to={inviteToken ? `/auth/register?invite=${inviteToken}` : "/auth/register"}
-                className="text-primary font-medium hover:underline underline-offset-2"
-              >
+              <Link to={"/auth/register"} className="text-primary font-medium hover:underline underline-offset-2">
                 Create one for free
               </Link>
             </p>

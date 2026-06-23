@@ -1,4 +1,4 @@
-import { LogOut, Sparkles, ArrowRight } from "lucide-react";
+import { LogOut, Sparkles, ArrowRight, Loader2 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import FlowBoardLogo from "@/shared/icons/FlowBoardLogo";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -7,11 +7,30 @@ import { Separator } from "@/components/ui/separator";
 import { useAppSelector } from "../hooks/useAppSelector";
 import { useState } from "react";
 import CreateWorkspace from "@/features/workspace/components/CreateWorkspace";
+import axios from "axios";
+import { useAppDispatch } from "../hooks/useAppDispatch";
+import { clearUser } from "@/redux/authSlice";
 
 const OnboardingSidebar = () => {
-  const [open, setOpen] = useState(false);
   const navigate = useNavigate();
-  const { userData } = useAppSelector((store) => store.auth);
+  const dispatch = useAppDispatch();
+  const { userData } = useAppSelector((store) => store?.auth);
+  const [open, setOpen] = useState<boolean>(false);
+  const [logoutLoading, setLogoutLoading] = useState<boolean>(false);
+
+  async function handleLogout() {
+    try {
+      setLogoutLoading(true);
+      console.log("fired");
+      await axios.post(`${import.meta.env.VITE_BACKEND_URL}/api/auth/logout`, {}, { withCredentials: true });
+      dispatch(clearUser());
+      navigate("/auth");
+    } catch (error) {
+      console.log(error);
+    } finally {
+      setLogoutLoading(false);
+    }
+  }
 
   return (
     <aside className="hidden lg:flex h-screen w-70 flex-col border-r border-border/40 bg-sidebar/50 backdrop-blur-sm px-3 py-4">
@@ -28,9 +47,9 @@ const OnboardingSidebar = () => {
 
       {/* Onboarding card - enhanced design */}
       <div className="mt-8 mx-1">
-        <div className="relative overflow-hidden rounded-2xl border border-border/40 bg-gradient-to-br from-accent/30 to-accent/5 p-6">
+        <div className="relative overflow-hidden rounded-2xl border border-border/40 bg-linear-to-br from-accent/30 to-accent/5 p-6">
           {/* Decorative gradient */}
-          <div className="absolute top-0 right-0 w-24 h-24 bg-gradient-to-bl from-primary/10 to-transparent rounded-bl-3xl" />
+          <div className="absolute top-0 right-0 w-24 h-24 bg-linear-to-bl from-primary/10 to-transparent rounded-bl-3xl" />
 
           <div className="relative">
             <div className="flex items-center justify-center h-12 w-12 rounded-xl bg-background/80 backdrop-blur-sm shadow-sm border border-border/30">
@@ -46,7 +65,8 @@ const OnboardingSidebar = () => {
 
             <Button
               onClick={() => setOpen(true)}
-              className="mt-6 w-full rounded-xl h-10 gap-2 bg-primary hover:bg-primary/90 transition-all duration-200"
+              variant="outline"
+              className="mt-6 w-full rounded-xl h-10 gap-2  transition-all duration-200"
             >
               Create Workspace
               <ArrowRight size={16} />
@@ -61,14 +81,12 @@ const OnboardingSidebar = () => {
       <div className="mt-6 px-3 space-y-3">
         <p className="text-[11px] font-medium text-muted-foreground/50 uppercase tracking-wider">What you can do</p>
         <div className="space-y-2">
-          {["Manage projects and tasks", "Invite team members", "Track issues and progress", "Customize workflows"].map(
-            (feature) => (
-              <div key={feature} className="flex items-start gap-2.5">
-                <div className="mt-0.5 h-1.5 w-1.5 rounded-full bg-primary/60 shrink-0" />
-                <p className="text-[12px] text-muted-foreground">{feature}</p>
-              </div>
-            ),
-          )}
+          {["Manage projects and tasks", "Invite team members", "Track issues and progress", "Customize workflows"].map((feature) => (
+            <div key={feature} className="flex items-start gap-2.5">
+              <div className="mt-0.5 h-1.5 w-1.5 rounded-full bg-primary/60 shrink-0" />
+              <p className="text-[12px] text-muted-foreground">{feature}</p>
+            </div>
+          ))}
         </div>
       </div>
 
@@ -77,7 +95,10 @@ const OnboardingSidebar = () => {
         <Separator className="bg-border/40 mb-4" />
 
         <div className="px-2">
-          <button className="w-full flex items-center gap-2.5 px-3 py-2 rounded-lg hover:bg-accent/50 transition-all duration-150 group">
+          <button
+            onClick={() => userData?.id && navigate(`/profile/${userData.username}`)}
+            className="w-full flex items-center gap-2.5 px-3 py-2 rounded-lg hover:bg-accent/50 transition-all duration-150 group"
+          >
             <Avatar className="h-7 w-7 rounded-lg border border-border/50">
               <AvatarImage src={userData?.avatar ?? ""} />
               <AvatarFallback className="bg-accent text-[11px] font-semibold rounded-lg">
@@ -92,11 +113,18 @@ const OnboardingSidebar = () => {
 
           <Button
             variant="ghost"
-            onClick={() => navigate("/auth/login", { replace: true })}
+            onClick={handleLogout}
+            disabled={logoutLoading}
             className="mt-2 w-full justify-start gap-2.5 px-3 h-9 rounded-lg text-[13px] text-muted-foreground hover:text-foreground hover:bg-accent/50"
           >
-            <LogOut size={14} />
-            Sign out
+            {logoutLoading ? (
+              <Loader2 className="mx-auto animate-spin"></Loader2>
+            ) : (
+              <>
+                <LogOut size={14} />
+                Sign out
+              </>
+            )}
           </Button>
         </div>
       </div>

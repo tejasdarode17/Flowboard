@@ -32,12 +32,13 @@ export const setFormErrors = <T extends FieldValues>(error: unknown, setError: U
 };
 
 
-
 //this function only used in forntend while parsing see Login.tsx
 export const zodErrors = (result: { error: ZodError }) => {
     const fieldErrors: Record<string, string> = {};
+
     result.error.issues.forEach((err) => {
         fieldErrors[err.path[0] as string] = err.message;
     });
+    
     return fieldErrors;
 }

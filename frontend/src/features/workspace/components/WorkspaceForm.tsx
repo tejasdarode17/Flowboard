@@ -4,18 +4,14 @@ import { Loader2, CloudUpload } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { createWorkspaceSchema, type CreateWorkspaceInput } from "../validations/workspace.validations";
+import { createWorkspaceSchema, type CreateWorkspaceInput, type UpdateWorkspaceInput } from "../validations/workspace.validations";
 import { useEffect, useState } from "react";
 import ErrorMessage from "@/shared/components/ErrorMessage";
 import { setFormErrors } from "@/shared/utils/errorHandler";
 
 type WorkspaceFormProps = {
   onSubmit: (data: FormData) => Promise<unknown>;
-  defaultValues?: {
-    name?: string;
-    description?: string;
-    logo?: string;
-  };
+  defaultValues?: UpdateWorkspaceInput;
   submitLabel?: string;
   loading: boolean;
 };
@@ -27,7 +23,7 @@ const WorkspaceForm = ({ onSubmit, defaultValues, submitLabel = "Create workspac
     reset,
     setValue,
     setError,
-    formState: { errors },
+    formState: { errors, isDirty },
   } = useForm<CreateWorkspaceInput>({
     resolver: zodResolver(createWorkspaceSchema),
     defaultValues: {
@@ -43,9 +39,16 @@ const WorkspaceForm = ({ onSubmit, defaultValues, submitLabel = "Create workspac
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
-    if (!file.type.startsWith("image/")) return;
+    if (!file.type.startsWith("image/")) {
+      setError("logo", { message: "Only image files are allowed" });
+      return;
+    }
+    if (file.size > 5 * 1024 * 1024) {
+      setError("logo", { message: "File size must be under 5MB" });
+      return;
+    }
     setPreview(URL.createObjectURL(file));
-    setValue("logo", file);
+    setValue("logo", file, { shouldDirty: true, shouldValidate: true });
   };
 
   useEffect(() => {
@@ -115,6 +118,7 @@ const WorkspaceForm = ({ onSubmit, defaultValues, submitLabel = "Create workspac
             </div>
           )}
         </label>
+        {errors.logo && <p className="text-xs text-destructive">{errors.logo.message}</p>}
       </div>
 
       {errors.root && <ErrorMessage error={errors.root.message} />}
@@ -133,7 +137,7 @@ const WorkspaceForm = ({ onSubmit, defaultValues, submitLabel = "Create workspac
         >
           Cancel
         </Button>
-        <Button variant="outline" type="submit" className="flex-1" disabled={loading}>
+        <Button variant="outline" type="submit" className="flex-1" disabled={loading || (defaultValues && !isDirty)}>
           {loading ? (
             <>
               <Loader2 size={14} className="animate-spin" /> Loading…

@@ -9,6 +9,7 @@ import { useIssues } from "../hooks/useIssues";
 import CreateIssue from "../components/CreateIssue";
 import { useIssuesStatusUpdate } from "../hooks/useIssueStatusUpdate";
 import LinkRepository from "../components/LinkRepositores";
+import { useCurrentWorkspace } from "@/features/workspace/hooks/useCurrentWorkspace";
 
 const COLUMNS = ["TODO", "IN_PROGRESS", "DONE"] as const;
 type Status = (typeof COLUMNS)[number];
@@ -27,6 +28,9 @@ const ProjectDetails = () => {
   const { data: issues, isLoading: isIssuesLoading } = useIssues(workspaceSlug!, projectId!);
 
   const { mutate: updateIssue } = useIssuesStatusUpdate(workspaceSlug!, projectId!);
+
+  const { currentWorkspace } = useCurrentWorkspace();
+  const isOwnerOrAdmin = currentWorkspace?.role == "ADMIN" || currentWorkspace?.role == "OWNER";
 
   const groupedIssues = useMemo(() => {
     if (!issues) return { TODO: [], IN_PROGRESS: [], DONE: [] };
@@ -89,13 +93,11 @@ const ProjectDetails = () => {
           {project?.projectGithub ? (
             <div className="rounded-lg border px-3 py-2">
               <p className="text-sm text-muted-foreground">Linked Repository</p>
-
               <p className="font-medium">{project.projectGithub.repoFullName}</p>
             </div>
           ) : (
-            <LinkRepository projectId={projectId!} />
+            isOwnerOrAdmin && <LinkRepository projectId={projectId!} />
           )}
-
           <CreateIssue />
         </div>
       </div>

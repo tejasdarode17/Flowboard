@@ -81,7 +81,7 @@ model Project {
   emojiId     String?
 
   workspaceId String
-  workspace   Workspace @relation(fields: [workspaceId], references: [id])
+  workspace   Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
 
   createdAt     DateTime       @default(now())
   updatedAt     DateTime       @updatedAt
@@ -102,14 +102,14 @@ model Issue {
   status   IssueStatus @default(TODO)
   priority Priority    @default(Medium)
 
-  assignedTo String
-  assignee   Member @relation("IssueAssignee", fields: [assignedTo], references: [id])
+  assignedTo String?
+  assignee   Member? @relation("IssueAssignee", fields: [assignedTo], references: [id], onDelete: SetNull)
 
-  createdBy String
-  creator   Member @relation("IssueCreator", fields: [createdBy], references: [id])
+  createdBy String?
+  creator   Member? @relation("IssueCreator", fields: [createdBy], references: [id], onDelete: SetNull)
 
   projectId String
-  project   Project @relation(fields: [projectId], references: [id])
+  project   Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -132,7 +132,7 @@ model WorkspaceInvite {
   email String
 
   workspaceId String
-  workspace   Workspace @relation(fields: [workspaceId], references: [id])
+  workspace   Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
 
   token     String   @unique
   role      Role     @default(MEMBER)
@@ -167,13 +167,13 @@ model Activity {
   id String @id @default(uuid())
 
   workspaceId String
-  workspace   Workspace @relation(fields: [workspaceId], references: [id])
+  workspace   Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
 
   projectId String?
-  project   Project? @relation(fields: [projectId], references: [id])
+  project   Project? @relation(fields: [projectId], references: [id], onDelete: SetNull)
 
-  actorId String
-  actor   Member @relation(fields: [actorId], references: [id])
+  actorId String?
+  actor   Member? @relation(fields: [actorId], references: [id], onDelete: SetNull)
 
   action ActivityAction
 
@@ -219,14 +219,14 @@ enum ActivityAction {
 model Notification {
   id String @id @default(cuid())
 
-  memberId String
-  member   Member @relation(fields: [memberId], references: [id])
+  memberId String?
+  member   Member? @relation(fields: [memberId], references: [id], onDelete: SetNull)
 
   workspaceId String
-  workspace   Workspace @relation(fields: [workspaceId], references: [id])
+  workspace   Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
 
   projectId String?
-  project   Project? @relation(fields: [projectId], references: [id])
+  project   Project? @relation(fields: [projectId], references: [id], onDelete: Cascade)
 
   title   String
   message String
@@ -241,7 +241,7 @@ model Notification {
   read Boolean @default(false)
 
   createdAt DateTime @default(now())
-  user      User?    @relation(fields: [userId], references: [id])
+  user      User?    @relation(fields: [userId], references: [id], onDelete: Cascade)
   userId    String?
 
   @@index([memberId, createdAt])

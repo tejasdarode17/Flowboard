@@ -6,5 +6,7 @@ export const useProjects = (workspaceSlug: string) => {
         queryKey: ["projects", workspaceSlug],
         queryFn: () => getProjectsApi(workspaceSlug),
         enabled: !!workspaceSlug,
+        staleTime: 1 * 60 * 1000,
+
     })
 }

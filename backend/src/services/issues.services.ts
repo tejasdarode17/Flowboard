@@ -106,7 +106,7 @@ export async function createIssue(data: issueInput, projectId: string, actorId: 
                     },
                 });
 
-              
+
                 emitToUser(assignee.userId, "notification:new", notification)
 
             }
@@ -251,8 +251,8 @@ export async function updateIssue(issueId: string, data: UpdateissueInput, actor
                     entityName: issue.title,
 
                     metadata: {
-                        fromMemberId: issue.assignee.id,
-                        fromMemberName: issue.assignee.user.name,
+                        fromMemberId: issue?.assignee?.id,
+                        fromMemberName: issue?.assignee?.user.name,
 
                         toMemberId: newAssignee.id,
                         toMemberName: newAssignee.user.name,
@@ -333,7 +333,7 @@ export async function updateIssue(issueId: string, data: UpdateissueInput, actor
                 },
             });
 
-            
+
             emitToUser(newAssignee.user.id, "notification:new", notification)
 
         } catch (error) {

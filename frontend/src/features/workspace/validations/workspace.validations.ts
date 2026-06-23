@@ -6,6 +6,11 @@ export const createWorkspaceSchema = z.object({
     logo: z.instanceof(File).optional(),
 });
 
+export const updateWorkspcaeSchema = z.object({
+    name: z.string().trim().min(3, "Name should be atleat more than three charcters").max(30, "Name is too long").optional(),
+    description: z.string().max(100, "Description too long").optional(),
+    logo: z.string().optional() || null
+})
 
 export const inviteMemberSchema = z.object({
     email: z.string().email("Invalid email address"),
@@ -14,3 +19,4 @@ export const inviteMemberSchema = z.object({
 
 export type InviteWorksapceInput = z.infer<typeof inviteMemberSchema>
 export type CreateWorkspaceInput = z.infer<typeof createWorkspaceSchema>;
+export type UpdateWorkspaceInput = z.infer<typeof updateWorkspcaeSchema>

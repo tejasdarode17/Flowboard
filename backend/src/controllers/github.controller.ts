@@ -1,27 +1,37 @@
 import { NextFunction, Request, Response } from "express";
-import { getGithubAuthUrl, getGithubRepositories, handleGithubCallback, linkRepositoryToProject, processGitHubWebhook, } from "../services/github.services";
+import { getGithubAuthUrl, getGithubRepositories, handleGithubCallback, linkRepositoryToProject, processGitHubWebhook, unlinkGithubAccount, unlinkRepositoryFromProject, } from "../services/github.services";
 import AppError from "../utils/AppError";
 import { generateGitHubState } from "../utils/jwt";
 import { linkRepositorySchema } from "../validations/github.validations";
 import { verifyGitHubWebhookSignature } from "../utils/githubUtils";
 import { GithubEvent, GithubWebhookPayload, } from "../types/githubWebhook.types";
+import prisma from "../lib/prisma";
 
 
 export async function connectGitHubController(req: Request, res: Response, next: NextFunction) {
     try {
         const userId = req.user?.userId;
-        const workspaceSlug = req.workspace.slug;
 
-        if (!userId || !workspaceSlug) {
-            return next(new AppError("Missing context", 400));
+        if (!userId) {
+            return next(new AppError("Not Athunticated", 400));
         }
 
-        const state = generateGitHubState(userId, workspaceSlug);
+        const user = await prisma.user.findUnique({
+            where: { id: userId }
+        })
+
+        if (!user) {
+            return next(new AppError("Athunticated", 400));
+        }
+
+        const state = generateGitHubState(userId, user?.username);
         const url = getGithubAuthUrl(state);
 
         return res.status(200).json({
             success: true,
             data: url,
+            message: "Connection Successfull",
+
         });
 
     } catch (error) {
@@ -43,9 +53,9 @@ export async function githubCallbackController(req: Request, res: Response, next
             return next(new AppError("GitHub state required", 400));
         }
 
-        const { workspaceSlug } = await handleGithubCallback(String(code), String(state))
+        const { username } = await handleGithubCallback(String(code), String(state))
 
-        return res.redirect(`${process.env.CLIENT_URL}/${workspaceSlug}/settings?github=connected`);
+        return res.redirect(`${process.env.CLIENT_URL}/profile/${username}/settings`);
 
     } catch (error) {
         next(error);
@@ -97,6 +107,35 @@ export async function linkRepositoryController(req: Request, res: Response, next
         next(error);
     }
 }
+
+
+export async function unlinkGithubAccountController(req: Request, res: Response) {
+    const userId = req.user?.userId;
+    if (!userId) throw new AppError("Unauthorized", 401);
+
+    await unlinkGithubAccount(userId);
+
+    res.status(200).json({
+        success: true,
+        message: "GitHub account unlinked successfully",
+    });
+}
+
+export async function unlinkRepositoryController(req: Request, res: Response) {
+    const userId = req.user?.userId;
+    const { projectId } = req.params;
+
+    if (!userId) throw new AppError("Unauthorized", 401);
+    if (!projectId || Array.isArray(projectId)) throw new AppError("Unauthorized", 401);
+
+    await unlinkRepositoryFromProject(projectId, userId);
+
+    res.status(200).json({
+        success: true,
+        message: "Repository unlinked successfully",
+    });
+}
+
 
 export async function githubWebhookController(req: Request, res: Response, next: NextFunction) {
     try {

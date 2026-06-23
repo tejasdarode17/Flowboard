@@ -4,10 +4,14 @@ import { useProjects } from "../../projects/hooks/useProjects";
 import CreateProject from "../components/CreateProject";
 import type { Project } from "../types/project.types";
 import { useIssues } from "../hooks/useIssues";
+import { useCurrentWorkspace } from "@/features/workspace/hooks/useCurrentWorkspace";
 
 const Projects = () => {
   const { workspaceSlug } = useParams();
   const { data: projects, isLoading } = useProjects(workspaceSlug || "");
+
+  const { currentWorkspace } = useCurrentWorkspace();
+  const isOwnerOrAdmin = currentWorkspace?.role == "ADMIN" || currentWorkspace?.role == "OWNER";
 
   if (isLoading) return <h1>Loading...</h1>;
 
@@ -23,7 +27,7 @@ const Projects = () => {
               : "Manage and organize your projects"}
           </p>
         </div>
-        <CreateProject />
+        {isOwnerOrAdmin && <CreateProject />}
       </div>
 
       {/* Empty state */}
@@ -34,10 +38,14 @@ const Projects = () => {
               <Layers size={28} className="text-muted-foreground/60" strokeWidth={1.5} />
             </div>
             <h2 className="text-[17px] font-semibold mb-1.5">No projects yet</h2>
-            <p className="text-[13px] text-muted-foreground text-center max-w-sm mb-6">
-              Create your first project to start organizing work, tracking issues, and collaborating with your team.
-            </p>
-            <CreateProject />
+            {isOwnerOrAdmin && (
+              <>
+                <p className="text-[13px] text-muted-foreground text-center max-w-sm mb-4">
+                  Create your first project to start organizing work and collaborating with your team.
+                </p>
+                <CreateProject />
+              </>
+            )}
           </div>
         </div>
       ) : (
@@ -84,7 +92,6 @@ const ProjectCard = ({ project, workspaceSlug }: { project: Project; workspaceSl
         {/* Bottom section */}
         <div className="mt-auto pt-4 flex items-center justify-between">
           <div className="flex items-center gap-3">
-          
             {totalIssues > 0 && (
               <div className="flex items-center gap-1.5">
                 <div className="h-1 w-1 rounded-full bg-muted-foreground/20" />

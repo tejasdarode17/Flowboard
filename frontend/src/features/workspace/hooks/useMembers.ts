@@ -6,5 +6,6 @@ export const useMembers = (workspaceSlug: string) => {
         queryKey: ["members", workspaceSlug],
         queryFn: () => getMembersOfWorkspace(workspaceSlug),
         enabled: !!workspaceSlug,
+        staleTime: 1000 * 60 * 5,
     })
 } 

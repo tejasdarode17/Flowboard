@@ -28,3 +28,19 @@ export async function sendInviteEmail({ to, workspaceName, token }: SendInviteEm
     `,
   });
 };
+
+
+export async function sendOTPEmail(email: string, otp: string) {
+  return sendMailFromResend({
+    to: email,
+    subject: "Verify your email",
+    html: `
+        <p>Hi,</p>
+        <p>Your Floboard verification code is:</p>
+        <h1>${otp}</h1>
+        <p>This code expires in 10 minutes.</p>
+        <p>If you didn't request this, ignore this email.</p>
+        `,
+  });
+}
+

@@ -10,6 +10,8 @@ import { useParams } from "react-router-dom";
 import { apiErrors, zodErrors } from "@/shared/utils/errorHandler";
 import { inviteMemberSchema, type InviteWorksapceInput } from "../validations/workspace.validations";
 import ErrorMessage from "@/shared/components/ErrorMessage";
+import { toast } from "sonner";
+import { useCurrentWorkspace } from "../hooks/useCurrentWorkspace";
 
 const InviteMember = () => {
   const { workspaceSlug } = useParams();
@@ -17,6 +19,9 @@ const InviteMember = () => {
   const [role, setRole] = useState<"ADMIN" | "MEMBER">("MEMBER");
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [open, setOpen] = useState(false);
+
+  const { currentWorkspace } = useCurrentWorkspace();
+  const isOwnerOrAdmin = currentWorkspace?.role == "ADMIN" || currentWorkspace?.role == "OWNER";
 
   const { mutateAsync, isPending } = useMutation({
     mutationFn: (data: InviteWorksapceInput) => inviteMemberToWorkspace(workspaceSlug!, data),
@@ -35,6 +40,7 @@ const InviteMember = () => {
         return;
       }
       await mutateAsync(result.data);
+      toast.success(`Invitation sent on email address ${email}`);
     } catch (err: unknown) {
       const parsed = apiErrors(err);
       setErrors(parsed);
@@ -85,7 +91,7 @@ const InviteMember = () => {
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="MEMBER">Member</SelectItem>
-                <SelectItem value="ADMIN">Admin</SelectItem>
+                {isOwnerOrAdmin && <SelectItem value="ADMIN">Admin</SelectItem>}
               </SelectContent>
             </Select>
           </div>

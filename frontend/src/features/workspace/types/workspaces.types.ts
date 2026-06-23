@@ -21,3 +21,20 @@ export interface WorkspaceMember {
     updatedAt: string;
     user: AuthUser;
 }
+
+
+
+export interface UpdateMemberRoleParams {
+    workspaceSlug: string;
+    memberId: string;
+    role: "OWNER" | "ADMIN" | "MEMBER";
+}
+
+
+export interface RemoveMemberParams {
+    workspaceSlug: string;
+    memberId: string;
+}
+
+
+

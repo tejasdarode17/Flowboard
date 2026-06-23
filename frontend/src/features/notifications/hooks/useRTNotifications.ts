@@ -1,7 +1,7 @@
 import { useEffect } from "react";
 import { useQueryClient, type InfiniteData } from "@tanstack/react-query";
 import { connectSocket } from "@/shared/lib/socket";
-import type { Notification, NotificationResponse } from "./notification.types";
+import type { Notification, NotificationResponse } from "../types/notification.types";
 
 export const useRTNotifications = (workspaceSlug: string) => {
     const queryClient = useQueryClient();
@@ -17,19 +17,11 @@ export const useRTNotifications = (workspaceSlug: string) => {
                 ["notifications", workspaceSlug],
                 (old) => {
                     if (!old) return old;
-
                     return {
                         ...old,
-                        pages: old.pages.map((page, i) =>
-                            i !== 0
-                                ? page
-                                : {
-                                    ...page,
-                                    notifications: [
-                                        notification,
-                                        ...page.notifications,
-                                    ],
-                                }
+                        pages: old.pages.map((page, i) => i !== 0 ? page : {
+                            ...page, notifications: [notification, ...page.notifications,],
+                        }
                         ),
                     };
                 }

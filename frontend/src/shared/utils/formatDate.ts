@@ -20,4 +20,14 @@ function formatDate(date: string): string {
 }
 
 
+export function joinedDate(data: string) {
+    const date = new Date(data);
+    return date.toLocaleDateString("en-US", {
+        month: "long",
+        day: "numeric",
+        year: "numeric",
+    });
+}
+
+
 export default formatDate

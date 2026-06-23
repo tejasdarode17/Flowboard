@@ -9,14 +9,9 @@ export async function getNotificationsController(req: Request, res: Response, ne
         if (!memberId) {
             return next(new AppError("Unauthorized", 401))
         }
-
-
-        // const cursor = typeof req.query.cursor === "string" ? req.query.cursor : undefined;
         const cursor = req.query.cursor as string
         const limit = Number(req.query.limit) || 20;
-
         const result = await getNotifications(memberId, cursor, limit);
-
         res.status(200).json({
             success: true,
             message: "Notification fetched ",
@@ -33,7 +28,11 @@ export async function getUnreadCountController(req: Request, res: Response, next
         const memberId = req.member?.id;
         if (!memberId) return next(new AppError("Unauthorized", 401));
         const result = await getUnreadCount(memberId);
-        return res.status(200).json({ success: true, data: result });
+        return res.status(200).json({
+            success: true,
+            message: "Unread Notification Fetched",
+            data: result
+        });
     } catch (error) {
         next(error);
     }

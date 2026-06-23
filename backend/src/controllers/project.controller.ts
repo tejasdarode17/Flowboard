@@ -17,7 +17,7 @@ export async function createProjectController(req: Request, res: Response, next:
         const project = await createProject(body, workspaceId, memberId)
 
         return res.status(200).json({
-            success: "true",
+            success: true,
             message: "Project created Successfully",
             data: project
         })
@@ -48,7 +48,7 @@ export async function updateProjectController(req: Request, res: Response, next:
         const project = await updateProject(body, workspaceId, projectId, memberId)
 
         return res.status(200).json({
-            success: "true",
+            success: true,
             message: "Project updated Successfully",
             data: project
         })
@@ -66,7 +66,7 @@ export async function getProjectsController(req: Request, res: Response, next: N
         const projects = await getProjects(workspaceId)
 
         return res.status(200).json({
-            success: "true",
+            success: true,
             message: "Projects fetched Successfully",
             data: projects
         })
@@ -87,7 +87,7 @@ export async function getProjectDetailsController(req: Request, res: Response, n
         const project = await getProjectDetails(projectId)
 
         return res.status(200).json({
-            success: "true",
+            success: true,
             message: "Project fetched Successfully",
             data: project
         })

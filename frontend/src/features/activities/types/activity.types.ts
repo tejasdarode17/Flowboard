@@ -74,10 +74,10 @@ export interface Activity {
     id: string;
 
     workspaceId: string;
-    
+
     project: {
         name: string
-    }
+    } | null
 
     actorId: string;
 
@@ -87,15 +87,11 @@ export interface Activity {
     entityId: string | null;
     entityName: string | null;
 
-    // targetType: string | null;
-    // targetId: string | null;
-    // targetName: string | null;
-
     metadata: ActivityMetadata | null;
 
     createdAt: string;
 
-    actor: ActivityActor;
+    actor: ActivityActor | null;
 }
 
 

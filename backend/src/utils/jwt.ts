@@ -70,29 +70,26 @@ export function verifyRefreshToken(token: string): JwtPayload {
 };
 
 
-
-
-export function generateGitHubState(userId: string, workspaceSlug: string) {
+export function generateGitHubState(userId: string, username: string) {
   return jwt.sign(
-    { userId, workspaceSlug, },
+    { userId, username },
     process.env.JWT_ACCESS_SECRET!,
     { expiresIn: "10m", }
   );
 }
 
 
-
 export function verifyGitHubState(state: string) {
   try {
     const decoded = jwt.verify(state, process.env.JWT_ACCESS_SECRET!);
 
-    if (typeof decoded !== "object" || !decoded || !("userId" in decoded) || !("workspaceSlug" in decoded)) {
+    if (typeof decoded !== "object" || !decoded || !("userId" in decoded) || !("username" in decoded)) {
       throw new AppError("Invalid state", 400);
     }
 
     return decoded as {
       userId: string;
-      workspaceSlug: string;
+      username: string;
     };
 
   } catch {

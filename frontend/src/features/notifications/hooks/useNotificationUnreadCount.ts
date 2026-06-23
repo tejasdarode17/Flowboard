@@ -1,5 +1,5 @@
 import { useQuery } from "@tanstack/react-query";
-import { getUnreadCount } from "./notification.services";
+import { getUnreadCount } from "../services/notification.services";
 
 export const useNotificationUnreadCount = (workspaceSlug: string) => {
     return useQuery({

@@ -4,7 +4,7 @@ export const createWorkspaceSchema = z.object({
   name: z.string().trim().min(3, "Name is too short").max(30, "Name is too long"),
   description: z.string().max(100, "Description too long").optional(),
   logo: z.string().url().optional(),
-  logoId: z.string().url().optional(),
+  // logoId: z.string().url().optional(),
 })
 
 export const updateWorkspaceSchema = createWorkspaceSchema.partial();

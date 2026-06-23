@@ -59,7 +59,11 @@ export async function getMyIssuesController(req: Request, res: Response, next: N
         const workspaceId = req.workspace?.id;
         if (!userId || !workspaceId) return next(new AppError("Not authenticated", 401));
         const issues = await getMyIssues(workspaceId, userId);
-        return res.status(200).json({ success: true, data: issues });
+        return res.status(200).json({
+            success: true,
+            message: "Issue fetched successfully",
+            data: issues
+        });
     } catch (error) {
         next(error);
     }

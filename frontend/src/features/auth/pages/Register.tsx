@@ -1,5 +1,5 @@
 import { useState, type FormEvent } from "react";
-import { Link, useNavigate, useSearchParams } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { ArrowRight, Loader2, Eye, EyeOff } from "lucide-react";
 import api from "@/api/axiosInstance";
 import { registrationSchema, type RegisterInput } from "@/features/auth/validations/auth.validations";
@@ -12,6 +12,7 @@ import GoogleIcon from "@/shared/icons/GoogleIcon";
 import StrengthBar from "../components/StrengthBar";
 import { useGoogleLogin } from "../hooks/useGoogleLogin";
 import { Button } from "@/components/ui/button";
+import { inviteToken } from "@/shared/utils/inviteToken";
 
 const Register = () => {
   const [showPw, setShowPw] = useState<boolean>(false);
@@ -19,9 +20,6 @@ const Register = () => {
   const [errors, setErrors] = useState<Record<string, string>>({});
   const navigate = useNavigate();
   const dispatch = useDispatch<AppDispatch>();
-  const [searchParams] = useSearchParams();
-
-  const inviteToken = searchParams.get("invite");
 
   const [form, setForm] = useState<RegisterInput>({
     name: "",
@@ -37,31 +35,23 @@ const Register = () => {
     setErrors((prev) => ({ ...prev, [name]: "" }));
   }
 
+  const token = inviteToken.get();
+
   async function handleSubmit(e: FormEvent) {
     try {
       e.preventDefault();
       setLoading(true);
 
       const result = registrationSchema.safeParse(form);
+
       if (!result.success) {
-        const errors = zodErrors(result);
-        setErrors(errors);
+        setErrors(zodErrors(result));
         return;
       }
-
-      const response = await api.post("/api/auth/register", form);
-      console.log(response);
-      await dispatch(checkAuth());
-
-      const inviteToken = searchParams.get("invite");
-      if (inviteToken) {
-        navigate(`/invite/${inviteToken}`);
-      } else {
-        navigate("/");
-      }
-    } catch (error: unknown) {
-      const err = apiErrors(error);
-      setErrors(err);
+      await api.post("/api/auth/register", form);
+      navigate(`/auth/verify?email=${form.email}`);
+    } catch (error) {
+      setErrors(apiErrors(error));
     } finally {
       setLoading(false);
     }
@@ -72,14 +62,8 @@ const Register = () => {
   async function googleLogin() {
     try {
       await handleGoolgeLogin();
-      await dispatch(checkAuth());
-
-      const inviteToken = searchParams.get("invite");
-      if (inviteToken) {
-        navigate(`/invite/${inviteToken}`);
-      } else {
-        navigate("/");
-      }
+      await dispatch(checkAuth()).unwrap();
+      navigate(token ? `/invite/${token}` : "/");
     } catch (error) {
       const err = apiErrors(error);
       console.log(err);
@@ -249,10 +233,7 @@ const Register = () => {
           {/* footer link */}
           <p className="mt-5 text-center text-xs text-muted-foreground">
             Already have an account?{" "}
-            <Link
-              to={inviteToken ? `/auth?invite=${inviteToken}` : "/auth"}
-              className="text-primary font-medium hover:underline underline-offset-2"
-            >
+            <Link to={"/auth"} className="text-primary font-medium hover:underline underline-offset-2">
               Sign in
             </Link>
           </p>

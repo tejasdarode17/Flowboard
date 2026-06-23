@@ -1,5 +1,5 @@
 import { useInfiniteQuery } from "@tanstack/react-query";
-import { getNotifications } from "./notification.services";
+import { getNotifications } from "../services/notification.services";
 
 export const useNotifications = (workspaceSlug: string) => {
     return useInfiniteQuery({
@@ -9,6 +9,7 @@ export const useNotifications = (workspaceSlug: string) => {
         getNextPageParam: (lastPage) => {
             return lastPage.hasMore ? lastPage.nextCursor : undefined;
         },
+        staleTime: Infinity,
         refetchOnWindowFocus: false,
     });
 };

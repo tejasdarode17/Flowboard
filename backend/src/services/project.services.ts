@@ -73,7 +73,6 @@ export async function updateProject(data: UpdateProjectInput, workspaceId: strin
 
     if (data.name && data.name !== project.name) {
         updatedData.name = data.name;
-
         updatedData.slug = slugify(data.name, {
             lower: true,
             strict: true,
@@ -183,4 +182,5 @@ export async function deleteProject(projectId: string, workspaceId: string, acto
         success: true,
     };
 }
+
 

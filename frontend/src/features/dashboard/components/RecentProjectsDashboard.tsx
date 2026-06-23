@@ -3,9 +3,13 @@ import { FolderKanban, ArrowUpRight } from "lucide-react";
 import { useProjects } from "@/features/projects/hooks/useProjects";
 import CreateProject from "@/features/projects/components/CreateProject";
 import { Skeleton } from "@/components/ui/skeleton";
+import { useCurrentWorkspace } from "@/features/workspace/hooks/useCurrentWorkspace";
 
 const RecentProjectsDashboard = ({ workspaceSlug }: { workspaceSlug: string }) => {
   const { data: projects, isLoading } = useProjects(workspaceSlug);
+
+  const { currentWorkspace } = useCurrentWorkspace();
+  const isOwnerOrAdmin = currentWorkspace?.role == "ADMIN" || currentWorkspace?.role == "OWNER";
 
   if (isLoading) {
     return (
@@ -59,10 +63,14 @@ const RecentProjectsDashboard = ({ workspaceSlug }: { workspaceSlug: string }) =
             <FolderKanban size={24} className="text-muted-foreground/60" strokeWidth={1.5} />
           </div>
           <h3 className="font-semibold text-[15px] mb-1">No projects yet</h3>
-          <p className="text-[13px] text-muted-foreground text-center max-w-sm mb-4">
-            Create your first project to start organizing work and collaborating with your team.
-          </p>
-          <CreateProject />
+          {isOwnerOrAdmin && (
+            <>
+              <p className="text-[13px] text-muted-foreground text-center max-w-sm mb-4">
+                Create your first project to start organizing work and collaborating with your team.
+              </p>
+              <CreateProject />
+            </>
+          )}
         </div>
       ) : (
         <div className="divide-y divide-border/20">

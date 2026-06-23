@@ -1,9 +1,8 @@
 import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { markAllNotificationsRead } from "./notification.services";
+import { markAllNotificationsRead } from "../services/notification.services";
 
 export const useNotificationAllRead = (workspaceSlug: string) => {
     const queryClient = useQueryClient();
-
     return useMutation({
         mutationFn: () => markAllNotificationsRead(workspaceSlug),
         onSuccess: () => {

@@ -392,13 +392,11 @@ export async function getMyIssues(workspaceId: string, userId: string) {
     const issues = await prisma.issue.findMany({
         where: {
             assignedTo: member.id,
-            status: { not: "DONE" },
         },
         include: {
             project: { select: { name: true, emoji: true, id: true } },
         },
         orderBy: { createdAt: "desc" },
-        take: 5,
     });
 
     return issues
@@ -422,12 +420,6 @@ export async function deleteIssue(issueId: string, actorId: string) {
 
     await prisma.$transaction(async (tx) => {
 
-        await tx.issue.delete({
-            where: {
-                id: issueId,
-            },
-        });
-
         await createActivity(
             {
                 workspaceId: issue.project.workspaceId,
@@ -447,6 +439,12 @@ export async function deleteIssue(issueId: string, actorId: string) {
             },
             tx
         );
+
+        await tx.issue.delete({
+            where: {
+                id: issueId,
+            },
+        });
     });
 
     return {

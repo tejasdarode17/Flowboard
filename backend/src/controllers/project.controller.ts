@@ -103,6 +103,10 @@ export async function deleteProjectController(req: Request, res: Response, next:
 
         const projectId = req.params.projectId;
 
+        console.log(projectId);
+        console.log("delete project");
+
+
         if (!projectId || Array.isArray(projectId)) {
             return next(new AppError("Project id is required", 400));
         }

@@ -26,3 +26,14 @@ export type CreateProjectParams = {
     workspaceSlug: string;
     data: CreateProjectInput;
 };
+
+export type UpadteProjectParams = {
+    workspaceSlug: string;
+    data: CreateProjectInput;
+    projectId: string
+};
+
+export type DeleteProjectParams = {
+    workspaceSlug: string;
+    projectId: string
+};

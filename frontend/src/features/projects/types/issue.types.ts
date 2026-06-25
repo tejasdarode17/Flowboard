@@ -61,3 +61,9 @@ export type UpdateIssueStatusParams = {
     status: IssueStatus;
 };
 
+export type DeleteIssueParams = {
+    workspaceSlug: string;
+    projectId: string;
+    issueId: string;
+};
+

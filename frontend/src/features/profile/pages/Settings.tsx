@@ -1,10 +1,11 @@
 import { useNavigate } from "react-router-dom";
 import { User, Mail, Lock } from "lucide-react";
-import ConnectUserGithub from "../components/ConnectUserGithub";
 import { useAppSelector } from "@/shared/hooks/useAppSelector";
 import { ChevronRight, Shield } from "lucide-react";
+
+import ChangePassword from "@/features/profile/components/ChangePassword";
 import ChangeEmail from "../components/ChangeEmail";
-import ChangePassword from "../components/ChangePassword";
+import ConnectUserGithub from "../components/ConnectUserGithub";
 
 const Settings = () => {
   const navigate = useNavigate();

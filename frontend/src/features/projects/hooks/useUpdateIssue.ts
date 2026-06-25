@@ -7,6 +7,7 @@ export const useIssuesUpdate = (workspaceSlug: string, projectId: string, onClos
         mutationFn: updateIssueApi,
         onSuccess: () => {
             queryClient.invalidateQueries({ queryKey: ["issues", workspaceSlug, projectId] });
+            queryClient.invalidateQueries({ queryKey: ["myIssues", workspaceSlug] });
             onClose?.();
         },
     });

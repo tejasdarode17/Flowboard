@@ -4,12 +4,12 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { Separator } from "@/components/ui/separator";
 import MemberBadge from "./MemberBadge";
-import ChangeRole from "./ChangeRole";
 import RemoveMember from "./RemoveMember";
 import type { WorkspaceMember } from "../types/workspaces.types";
 import { useAppSelector } from "@/shared/hooks/useAppSelector";
 import { useParams } from "react-router-dom";
 import { useCurrentWorkspace } from "../hooks/useCurrentWorkspace";
+import ChangeRole from "@/features/workspace/components/ChangeRole";
 
 interface MemberCardProps {
   member: WorkspaceMember;
@@ -64,7 +64,7 @@ const MemberCard = ({ member }: MemberCardProps) => {
         )}
       </div>
 
-      {/* Action Menu - Only show for other members */}
+      {/* Action Menu - Only show for other members if Owner */}
       {!isCurrentUser && isOwner && (
         <div className="relative z-20 shrink-0">
           <DropdownMenu>

@@ -1,6 +1,6 @@
 import api from "@/api/axiosInstance"
 import { type ApiResponse } from "@/shared/types/api.response.types"
-import type { CreateProjectParams, Project } from "../../projects/types/project.types"
+import type { CreateProjectParams, DeleteProjectParams, Project, UpadteProjectParams, } from "../../projects/types/project.types"
 
 
 
@@ -10,11 +10,21 @@ export const getProjectsApi = async (workspaceSlug: string) => {
 }
 
 export const createProjectApi = async ({ workspaceSlug, data }: CreateProjectParams) => {
-    const { data: resposne } = await api.post(`/api/workspace/${workspaceSlug}/projects`, data)
+    const { data: resposne } = await api.post<ApiResponse<Project>>(`/api/workspace/${workspaceSlug}/projects`, data)
+    return resposne.data
+}
+
+export const updateProjectApi = async ({ workspaceSlug, data, projectId }: UpadteProjectParams) => {
+    const { data: resposne } = await api.post<ApiResponse<Project>>(`/api/workspace/${workspaceSlug}/projects/${projectId}`, data)
+    return resposne.data
+}
+
+export const deleteProjectApi = async ({ workspaceSlug, projectId }: DeleteProjectParams) => {
+    const { data: resposne } = await api.delete(`/api/workspace/${workspaceSlug}/projects/${projectId}`)
     return resposne.data
 }
 
 export const getProjectDetailsApi = async (workspaceSlug: string, projectId: string) => {
-    const { data: resposne } = await api.get(`/api/workspace/${workspaceSlug}/projects/${projectId}`)
+    const { data: resposne } = await api.get<ApiResponse<Project>>(`/api/workspace/${workspaceSlug}/projects/${projectId}`)
     return resposne.data
 }

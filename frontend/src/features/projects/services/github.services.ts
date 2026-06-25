@@ -1,5 +1,5 @@
 import api from "@/api/axiosInstance";
-import type { LinkRepositoryParams } from "../types/github.types";
+import type { LinkRepositoryParams, UnlinkRepositoryParams } from "../types/github.types";
 
 export const getGithubRepositoriesApi = async () => {
     const { data: response } = await api.get("/api/github/repos");
@@ -11,7 +11,7 @@ export const linkRepositoryApi = async ({ workspaceSlug, data }: LinkRepositoryP
     return response.data
 };
 
-export const unlinkRepositoryApi = async (workspaceSlug: string, projectId: string) => {
+export const unlinkRepositoryApi = async ({ workspaceSlug, projectId }: UnlinkRepositoryParams) => {
     const { data: response } = await api.delete(`/api/github/${workspaceSlug}/project/${projectId}`);
     return response.data
 };

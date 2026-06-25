@@ -2,22 +2,24 @@ import { useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import EmojiPicker from "emoji-picker-react";
-import { Loader2 } from "lucide-react";
+import { Loader2, Hash } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import ErrorMessage from "@/shared/components/ErrorMessage";
 import { setFormErrors } from "@/shared/utils/errorHandler";
 import { createProjectSchema, type CreateProjectInput } from "../../projects/validations/project.validations";
+import type { Project } from "../types/project.types";
 
 type ProjectFormProps = {
   onSubmit: (data: CreateProjectInput) => Promise<unknown>;
   loading: boolean;
+  project?: Project;
 };
 
-const ProjectForm = ({ onSubmit, loading }: ProjectFormProps) => {
+const ProjectForm = ({ onSubmit, loading, project }: ProjectFormProps) => {
   const [showPicker, setShowPicker] = useState(false);
-  const [selectedEmoji, setSelectedEmoji] = useState("🚀");
+  const [selectedEmoji, setSelectedEmoji] = useState(project?.emoji || "🚀");
 
   const {
     register,
@@ -28,7 +30,12 @@ const ProjectForm = ({ onSubmit, loading }: ProjectFormProps) => {
     formState: { errors },
   } = useForm<CreateProjectInput>({
     resolver: zodResolver(createProjectSchema),
-    defaultValues: { name: "", description: "", emoji: "🚀", emojiId: "rocket" },
+    defaultValues: {
+      name: project?.name || "",
+      description: project?.description || "",
+      emoji: project?.emoji || "",
+      emojiId: project?.emojiId || "",
+    },
   });
 
   const handler = async (data: CreateProjectInput) => {
@@ -43,21 +50,23 @@ const ProjectForm = ({ onSubmit, loading }: ProjectFormProps) => {
 
   return (
     <form onSubmit={handleSubmit(handler)} className="space-y-5 pt-1">
-      <div className="space-y-1.5">
-        <Label htmlFor="name">
+      {/* Project Name + Emoji */}
+      <div className="space-y-2">
+        <Label htmlFor="name" className="text-[13px] font-medium">
           Project name <span className="text-destructive">*</span>
         </Label>
-        <div className="flex gap-2 items-start relative">
+        <div className="flex gap-2.5 items-start relative">
+          {/* Emoji Picker Button */}
           <div className="relative shrink-0">
             <button
               type="button"
               onClick={() => setShowPicker((prev) => !prev)}
-              className="h-10 w-10 flex items-center justify-center rounded-lg border border-input bg-card text-xl hover:bg-muted transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+              className="h-10 w-10 flex items-center justify-center rounded-xl border border-border/40 bg-muted/30 text-xl hover:bg-accent/50 hover:border-border/60 transition-all duration-150"
             >
-              {selectedEmoji}
+              {selectedEmoji || <Hash size={18} className="text-muted-foreground/50" />}
             </button>
             {showPicker && (
-              <div className="absolute top-12 left-0 z-50 shadow-lg rounded-xl overflow-hidden">
+              <div className="absolute top-12 left-0 z-50 shadow-xl rounded-2xl overflow-hidden border border-border/40">
                 <EmojiPicker
                   onEmojiClick={(emojiData) => {
                     setValue("emoji", emojiData.emoji);
@@ -65,7 +74,6 @@ const ProjectForm = ({ onSubmit, loading }: ProjectFormProps) => {
                     setShowPicker(false);
                     setSelectedEmoji(emojiData.emoji);
                   }}
-                  className="bg-background"
                   height={380}
                   width={300}
                   previewConfig={{ showPreview: false }}
@@ -73,23 +81,27 @@ const ProjectForm = ({ onSubmit, loading }: ProjectFormProps) => {
               </div>
             )}
           </div>
+
+          {/* Name Input */}
           <div className="flex-1">
             <Input
               id="name"
               placeholder="Website Redesign"
               disabled={loading}
               {...register("name")}
-              className={`bg-card ${errors.name ? "border-destructive" : ""}`}
+              className={`h-10 rounded-xl bg-muted/30 border-border/40 text-[13px] placeholder:text-muted-foreground/40 ${
+                errors.name ? "border-red-500/40 focus-visible:ring-red-500/20" : ""
+              }`}
             />
+            {errors.name && <p className="text-[12px] text-destructive mt-1.5">{errors.name.message}</p>}
           </div>
         </div>
-        <p className="text-xs text-muted-foreground">Click the emoji to change the project icon</p>
-        {errors.name && <p className="text-xs text-destructive">{errors.name.message}</p>}
       </div>
 
-      <div className="space-y-1.5">
-        <Label htmlFor="description">
-          Description <span className="text-muted-foreground font-normal">(optional)</span>
+      {/* Description */}
+      <div className="space-y-2">
+        <Label htmlFor="description" className="text-[13px] font-medium">
+          Description <span className="text-muted-foreground/50 font-normal">(optional)</span>
         </Label>
         <textarea
           id="description"
@@ -97,20 +109,26 @@ const ProjectForm = ({ onSubmit, loading }: ProjectFormProps) => {
           disabled={loading}
           placeholder="What is this project about?"
           {...register("description")}
-          className={`flex w-full rounded-md border border-input bg-card px-3 py-2 text-sm placeholder:text-muted-foreground resize-none focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:opacity-50 ${
-            errors.description ? "border-destructive" : ""
+          className={`flex w-full rounded-xl border border-border/40 bg-muted/30 px-3.5 py-2.5 text-[13px] placeholder:text-muted-foreground/40 resize-none focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/20 focus-visible:border-border/60 disabled:opacity-50 transition-all duration-150 ${
+            errors.description ? "border-red-500/40" : ""
           }`}
         />
-        {errors.description && <p className="text-xs text-destructive">{errors.description.message}</p>}
+        {errors.description && <p className="text-[12px] text-destructive mt-1.5">{errors.description.message}</p>}
       </div>
 
-      {errors.root && <ErrorMessage error={errors.root.message} />}
+      {/* Error */}
+      {errors.root && (
+        <div className="px-4 py-3 rounded-xl bg-red-500/5 border border-red-500/20">
+          <ErrorMessage error={errors.root.message} />
+        </div>
+      )}
 
+      {/* Actions */}
       <div className="flex gap-2 pt-1">
         <Button
           type="button"
           variant="outline"
-          className="flex-1"
+          className="flex-1 rounded-xl h-10 text-[13px]"
           disabled={loading}
           onClick={() => {
             reset();
@@ -119,11 +137,14 @@ const ProjectForm = ({ onSubmit, loading }: ProjectFormProps) => {
         >
           Cancel
         </Button>
-        <Button variant="outline" type="submit" className="flex-1" disabled={loading}>
+        <Button variant="outline" type="submit" className="flex-1 rounded-xl h-10 text-[13px] gap-2" disabled={loading}>
           {loading ? (
             <>
-              <Loader2 size={14} className="animate-spin" /> Creating...
+              <Loader2 size={14} className="animate-spin" />
+              {project ? "Saving..." : "Creating..."}
             </>
+          ) : project ? (
+            "Save Changes"
           ) : (
             "Create Project"
           )}
@@ -132,4 +153,5 @@ const ProjectForm = ({ onSubmit, loading }: ProjectFormProps) => {
     </form>
   );
 };
+
 export default ProjectForm;

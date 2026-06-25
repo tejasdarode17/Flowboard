@@ -17,3 +17,8 @@ export interface LinkRepositoryParams {
     data: LinkRepositoryInput
 }
 
+export interface UnlinkRepositoryParams {
+    workspaceSlug: string
+    projectId: string
+}
+

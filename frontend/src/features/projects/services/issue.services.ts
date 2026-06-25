@@ -1,5 +1,5 @@
 import type { ApiResponse } from "@/shared/types/api.response.types"
-import type { CreateIssueParams, Issue, UpdateIssueParams, UpdateIssueStatusParams } from "../types/issue.types"
+import type { CreateIssueParams, DeleteIssueParams, Issue, UpdateIssueParams, UpdateIssueStatusParams } from "../types/issue.types"
 import api from "@/api/axiosInstance"
 
 export const getIssuesApi = async (workspaceSlug: string, projectId: string) => {
@@ -30,3 +30,9 @@ export const updateIssueStatusApi = async ({ workspaceSlug, projectId, issueId, 
     );
     return response.data;
 };
+
+
+export const deleteIssueApi = async ({ workspaceSlug, projectId, issueId }: DeleteIssueParams) => {
+    const { data: response } = await api.delete(`/api/workspace/${workspaceSlug}/projects/${projectId}/issues/${issueId}`);
+    return response.data
+}   

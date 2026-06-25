@@ -8,8 +8,8 @@ const route = Router()
 
 route.get("/:workspaceSlug/projects", verifyAuth, requireWorkspaceAccess, getProjectsController)
 route.post("/:workspaceSlug/projects", verifyAuth, requireWorkspaceAccess, requireMemberRole(["ADMIN", "OWNER"]), createProjectController)
-route.patch("/:workspaceSlug/projects/:projectId", verifyAuth, requireWorkspaceAccess, requireMemberRole(["ADMIN", "OWNER"]), updateProjectController)
-route.delete("/:projectId", verifyAuth, requireWorkspaceAccess, requireMemberRole(["OWNER", "ADMIN"]), deleteProjectController);
+route.post("/:workspaceSlug/projects/:projectId", verifyAuth, requireWorkspaceAccess, requireMemberRole(["ADMIN", "OWNER"]), updateProjectController)
+route.delete("/:workspaceSlug/projects/:projectId", verifyAuth, requireWorkspaceAccess, requireMemberRole(["OWNER", "ADMIN"]), deleteProjectController);
 route.get("/:workspaceSlug/projects/:projectId", verifyAuth, requireWorkspaceAccess, getProjectDetailsController)
 
 

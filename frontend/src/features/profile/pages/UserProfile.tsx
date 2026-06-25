@@ -6,8 +6,8 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Button } from "@/components/ui/button";
 import { Mail, Calendar, AtSign, ArrowLeft, Shield, User, Lock, ChevronRight } from "lucide-react";
 import { Link } from "react-router-dom";
-import ConnectUserGithub from "@/features/settings/components/ConnectUserGithub";
 import { joinedDate } from "@/shared/utils/formatDate";
+import ConnectUserGithub from "../components/ConnectUserGithub";
 
 const UserProfile = () => {
   const { username } = useParams();

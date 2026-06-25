@@ -1,5 +1,5 @@
 import { useMutation } from "@tanstack/react-query"
-import { disconnectGitHubApi } from "../services/github.services"
+import { disconnectGitHubApi } from "../services/profile.services";
 
 export const useGithubDisconnect = () => {
     return useMutation({

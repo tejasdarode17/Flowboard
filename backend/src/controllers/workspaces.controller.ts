@@ -48,12 +48,15 @@ export async function getWorkspaceDetailsController(req: Request, res: Response,
     try {
 
         const workspaceId = req.workspace.id
+        const userId = req.user?.userId
+        const role = req.member?.role
+
         const workspace = await getWorkspaceDetails(workspaceId)
 
         return res.status(200).json({
             success: true,
             message: "Workspace fetched Successfully",
-            data: workspace
+            data: { ...workspace, role }
         })
 
     } catch (error) {

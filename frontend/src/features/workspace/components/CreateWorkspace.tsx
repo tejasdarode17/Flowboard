@@ -17,20 +17,23 @@ const CreateWorkspace = ({ open, setOpen }: CreateWorkspaceProps) => {
 
   return (
     <Dialog open={open} onOpenChange={setOpen}>
-      <DialogContent className="sm:max-w-md">
-        <DialogHeader>
-          <div className="flex items-center gap-3 mb-1">
-            <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-foreground">
-              <Building2 size={16} className="text-background" />
+      <DialogContent className="sm:max-w-md rounded-2xl p-0 gap-0">
+        <DialogHeader className="px-6 pt-6 pb-4">
+          <div className="flex items-center gap-3.5">
+            <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-muted/50 border border-border/40 shrink-0">
+              <Building2 size={17} className="text-foreground/70" strokeWidth={1.5} />
             </div>
             <div>
-              <DialogTitle className="font-syne text-lg tracking-tight">Create workspace</DialogTitle>
-              <DialogDescription className="text-xs mt-0.5">A workspace is where your team manages projects and issues.</DialogDescription>
+              <DialogTitle className="text-lg font-semibold font-heading tracking-tight">Create Workspace</DialogTitle>
+              <DialogDescription className="text-[13px] text-muted-foreground mt-0.5">
+                Create a new workspace for your team to manage projects and issues.
+              </DialogDescription>
             </div>
           </div>
         </DialogHeader>
-
-        <WorkspaceForm onSubmit={handleSubmit} loading={isPending} />
+        <div className="px-6 pb-6">
+          <WorkspaceForm onSubmit={handleSubmit} loading={isPending} onClose={() => setOpen(false)} />
+        </div>
       </DialogContent>
     </Dialog>
   );

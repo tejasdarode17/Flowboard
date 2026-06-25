@@ -1,48 +1,46 @@
 import { createBrowserRouter, RouterProvider } from "react-router-dom";
-import { lazy, Suspense, useEffect, type JSX } from "react";
+import { useEffect } from "react";
 import { checkAuth } from "./redux/authSlice";
 import { useAppDispatch } from "./shared/hooks/useAppDispatch";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+
 import AuthGuard from "./features/auth/components/AuthGuard";
 import PrivateGuard from "./features/auth/components/PrivateGuard";
-import MainLoder from "./shared/components/MainLoder";
 
-// Layouts — eager load (chhote, immediately chahiye)
+// Layouts
 import AuthLayout from "./layout/AuthLayout";
 import MainLayout from "./layout/MainLayout";
 import WorkspaceLayout from "./layout/WorkspaceLayout";
 
-// Pages — lazy load
-const Login = lazy(() => import("./features/auth/pages/Login"));
-const Register = lazy(() => import("./features/auth/pages/Register"));
-const VerifyAccount = lazy(() => import("./features/auth/pages/VerifyAccount"));
-const ForgotPassword = lazy(() => import("./features/auth/pages/ForgetPassword"));
-const VerifyPasswordOtp = lazy(() => import("./features/auth/pages/VerifyPasswordOtp"));
-const ResetPassword = lazy(() => import("./features/auth/pages/ResetPassword"));
-const Redirect = lazy(() => import("./features/auth/pages/Redirect"));
+// Auth
+import Login from "./features/auth/pages/Login";
+import Register from "./features/auth/pages/Register";
+import VerifyAccount from "./features/auth/pages/VerifyAccount";
+import ForgotPassword from "./features/auth/pages/ForgetPassword";
+import VerifyPasswordOtp from "./features/auth/pages/VerifyPasswordOtp";
+import ResetPassword from "./features/auth/pages/ResetPassword";
+import Redirect from "./features/auth/pages/Redirect";
 
-const Invite = lazy(() => import("./features/workspace/pages/Invite"));
-const CreateWorkspacePage = lazy(() => import("./features/workspace/pages/CreateWorkspacePage"));
-const Members = lazy(() => import("./features/workspace/pages/Members"));
+// Workspace
+import Invite from "./features/workspace/pages/Invite";
+import CreateWorkspacePage from "./features/workspace/pages/CreateWorkspacePage";
+import Members from "./features/workspace/pages/Members";
+import WorkspaceSettings from "./features/workspace/pages/WorksapceSettings";
 
-const UserProfile = lazy(() => import("./features/profile/pages/UserProfile"));
-const EditProfile = lazy(() => import("./features/profile/pages/EditProfile"));
+// Profile
+import UserProfile from "./features/profile/pages/UserProfile";
+import EditProfile from "./features/profile/pages/EditProfile";
+import Settings from "./features/profile/pages/Settings";
 
-const Dashboard = lazy(() => import("./features/dashboard/pages/Dashboard"));
-const Projects = lazy(() => import("./features/projects/pages/Projects"));
-const ProjectDetails = lazy(() => import("./features/projects/pages/ProjectDetails"));
-const Settings = lazy(() => import("./features/settings/pages/Settings"));
-const WorkspaceSettings = lazy(() => import("./features/workspace/pages/WorksapceSettings"));
-const Activities = lazy(() => import("./features/activities/pages/Activities"));
-const Notifications = lazy(() => import("./features/notifications/pages/Notifications"));
+// Dashboard
+import Dashboard from "./features/dashboard/pages/Dashboard";
+import Projects from "./features/projects/pages/Projects";
+import ProjectDetails from "./features/projects/pages/ProjectDetails";
+import Activities from "./features/activities/pages/Activities";
+import Notifications from "./features/notifications/pages/Notifications";
 
-const NotFound = lazy(() => import("./shared/pages/NotFound"));
-
-const withSuspense = (Component: React.LazyExoticComponent<() => JSX.Element>) => (
-  <Suspense fallback={<MainLoder />}>
-    <Component />
-  </Suspense>
-);
+// Shared
+import NotFound from "./shared/pages/NotFound";
 
 const appRouter = createBrowserRouter([
   {
@@ -53,16 +51,19 @@ const appRouter = createBrowserRouter([
       </AuthGuard>
     ),
     children: [
-      { index: true, element: withSuspense(Login) },
-      { path: "register", element: withSuspense(Register) },
-      { path: "verify", element: withSuspense(VerifyAccount) },
-      { path: "forgot-password", element: withSuspense(ForgotPassword) },
-      { path: "verify-password", element: withSuspense(VerifyPasswordOtp) },
-      { path: "reset-password", element: withSuspense(ResetPassword) },
+      { index: true, element: <Login /> },
+      { path: "register", element: <Register /> },
+      { path: "verify", element: <VerifyAccount /> },
+      { path: "forgot-password", element: <ForgotPassword /> },
+      { path: "verify-password", element: <VerifyPasswordOtp /> },
+      { path: "reset-password", element: <ResetPassword /> },
     ],
   },
 
-  { path: "/invite/:token", element: withSuspense(Invite) },
+  {
+    path: "/invite/:token",
+    element: <Invite />,
+  },
 
   {
     path: "/",
@@ -72,31 +73,52 @@ const appRouter = createBrowserRouter([
       </PrivateGuard>
     ),
     children: [
-      { index: true, element: withSuspense(Redirect) },
-      { path: "/workspace/create", element: withSuspense(CreateWorkspacePage) },
-      { path: "profile/:username", element: withSuspense(UserProfile) },
-      { path: "profile/edit/:username", element: withSuspense(EditProfile) },
-      { path: "profile/:username/settings", element: withSuspense(Settings) },
+      { index: true, element: <Redirect /> },
+
+      {
+        path: "/workspace/create",
+        element: <CreateWorkspacePage />,
+      },
+
+      {
+        path: "profile/:username",
+        element: <UserProfile />,
+      },
+
+      {
+        path: "profile/edit/:username",
+        element: <EditProfile />,
+      },
+
+      {
+        path: "profile/:username/settings",
+        element: <Settings />,
+      },
+
       {
         path: ":workspaceSlug",
         element: <WorkspaceLayout />,
         children: [
-          { index: true, element: withSuspense(Dashboard) },
-          { path: "projects", element: withSuspense(Projects) },
-          { path: "projects/:projectId", element: withSuspense(ProjectDetails) },
-          { path: "team", element: withSuspense(Members) },
-          { path: "settings", element: withSuspense(WorkspaceSettings) },
-          { path: "activities", element: withSuspense(Activities) },
-          { path: "notifications", element: withSuspense(Notifications) },
-          { path: "*", element: withSuspense(NotFound) },
+          { index: true, element: <Dashboard /> },
+          { path: "projects", element: <Projects /> },
+          { path: "projects/:projectId", element: <ProjectDetails /> },
+          // { path: "projects/:projectId/issues/:issueId", element: <IssueDetails /> },
+          { path: "team", element: <Members /> },
+          { path: "settings", element: <WorkspaceSettings /> },
+          { path: "activities", element: <Activities /> },
+          { path: "notifications", element: <Notifications /> },
+          { path: "*", element: <NotFound /> },
         ],
       },
     ],
   },
-  { path: "*", element: withSuspense(NotFound) },
+
+  {
+    path: "*",
+    element: <NotFound />,
+  },
 ]);
 
-// App.tsx
 const queryClient = new QueryClient({
   defaultOptions: {
     queries: {
@@ -115,14 +137,9 @@ function App() {
 
   return (
     <QueryClientProvider client={queryClient}>
-      <Suspense fallback={<MainLoder></MainLoder>}>
-        <RouterProvider router={appRouter}></RouterProvider>
-      </Suspense>
+      <RouterProvider router={appRouter} />
     </QueryClientProvider>
   );
 }
 
 export default App;
-
-//project curd/
-// issue delete

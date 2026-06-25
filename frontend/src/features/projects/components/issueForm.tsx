@@ -1,6 +1,6 @@
 import { Controller, useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { Loader2 } from "lucide-react";
+import { Loader2, Flag, User } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -16,9 +16,10 @@ type IssueFormProps = {
   defaultValues?: Partial<CreateIssueInput>;
   submitLabel?: string;
   loading: boolean;
+  onClose?: () => void;
 };
 
-const IssueForm = ({ onSubmit, defaultValues, submitLabel = "Create Issue", loading }: IssueFormProps) => {
+const IssueForm = ({ onSubmit, defaultValues, submitLabel = "Create Issue", loading, onClose }: IssueFormProps) => {
   const { workspaceSlug } = useParams();
   const { data: members } = useMembers(workspaceSlug!);
 
@@ -49,9 +50,10 @@ const IssueForm = ({ onSubmit, defaultValues, submitLabel = "Create Issue", load
   };
 
   return (
-    <form onSubmit={handleSubmit(handler)} className="space-y-5">
-      <div className="space-y-1.5">
-        <Label htmlFor="title">
+    <form onSubmit={handleSubmit(handler)} className="space-y-4">
+      {/* Title */}
+      <div className="space-y-2">
+        <Label htmlFor="title" className="text-[13px] font-medium">
           Title <span className="text-destructive">*</span>
         </Label>
         <Input
@@ -59,60 +61,81 @@ const IssueForm = ({ onSubmit, defaultValues, submitLabel = "Create Issue", load
           placeholder="Fix authentication bug"
           disabled={loading}
           {...register("title")}
-          className={`bg-card ${errors.title ? "border-destructive" : ""}`}
+          className={`h-10 rounded-xl bg-muted/30 border-border/40 text-[13px] placeholder:text-muted-foreground/40 ${
+            errors.title ? "border-red-500/40 focus-visible:ring-red-500/20" : ""
+          }`}
         />
-        {errors.title && <p className="text-xs text-destructive">{errors.title.message}</p>}
+        {errors.title && <p className="text-[12px] text-destructive mt-1.5">{errors.title.message}</p>}
       </div>
 
-      <div className="space-y-1.5">
-        <Label htmlFor="description">Description</Label>
+      {/* Description */}
+      <div className="space-y-2">
+        <Label htmlFor="description" className="text-[13px] font-medium">
+          Description <span className="text-muted-foreground/50 font-normal">(optional)</span>
+        </Label>
         <textarea
           id="description"
           rows={4}
           disabled={loading}
           placeholder="Describe the issue..."
           {...register("description")}
-          className={`bg-card flex w-full rounded-md border border-input px-3 py-2 text-sm resize-none placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:opacity-50 ${
-            errors.description ? "border-destructive" : ""
+          className={`flex w-full rounded-xl border border-border/40 bg-muted/30 px-3.5 py-2.5 text-[13px] placeholder:text-muted-foreground/40 resize-none focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/20 focus-visible:border-border/60 disabled:opacity-50 transition-all duration-150 ${
+            errors.description ? "border-red-500/40" : ""
           }`}
         />
-        {errors.description && <p className="text-xs text-destructive">{errors.description.message}</p>}
+        {errors.description && <p className="text-[12px] text-destructive mt-1.5">{errors.description.message}</p>}
       </div>
 
-      <div className="space-y-1.5">
-        <Label>Priority</Label>
+      {/* Priority */}
+      <div className="space-y-2">
+        <Label className="text-[13px] font-medium">Priority</Label>
         <Controller
           control={control}
           name="priority"
           render={({ field }) => (
             <Select defaultValue={field.value} onValueChange={field.onChange} disabled={loading}>
-              <SelectTrigger>
-                <SelectValue placeholder="Priority" />
+              <SelectTrigger className="h-10 rounded-xl bg-muted/30 border-border/40 text-[13px]">
+                <div className="flex items-center gap-2">
+                  <Flag size={14} className="text-muted-foreground" strokeWidth={1.5} />
+                  <SelectValue placeholder="Select priority" />
+                </div>
               </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="Low">Low</SelectItem>
-                <SelectItem value="Medium">Medium</SelectItem>
-                <SelectItem value="High">High</SelectItem>
+              <SelectContent className="rounded-xl">
+                <SelectItem value="Low" className="text-[13px] rounded-lg">
+                  Low
+                </SelectItem>
+                <SelectItem value="Medium" className="text-[13px] rounded-lg">
+                  Medium
+                </SelectItem>
+                <SelectItem value="High" className="text-[13px] rounded-lg">
+                  High
+                </SelectItem>
               </SelectContent>
             </Select>
           )}
         />
-        {errors.priority && <p className="text-xs text-destructive">{errors.priority.message}</p>}
+        {errors.priority && <p className="text-[12px] text-destructive mt-1.5">{errors.priority.message}</p>}
       </div>
 
-      <div className="space-y-1.5">
-        <Label>Assign To</Label>
+      {/* Assignee */}
+      <div className="space-y-2">
+        <Label className="text-[13px] font-medium">
+          Assign To <span className="text-muted-foreground/50 font-normal">(optional)</span>
+        </Label>
         <Controller
           control={control}
           name="assignedTo"
           render={({ field }) => (
             <Select value={field.value} onValueChange={field.onChange} disabled={loading}>
-              <SelectTrigger>
-                <SelectValue placeholder="Select member" />
+              <SelectTrigger className="h-10 rounded-xl bg-muted/30 border-border/40 text-[13px]">
+                <div className="flex items-center gap-2">
+                  <User size={14} className="text-muted-foreground" strokeWidth={1.5} />
+                  <SelectValue placeholder="Select member" />
+                </div>
               </SelectTrigger>
-              <SelectContent>
+              <SelectContent className="rounded-xl">
                 {members?.map((member) => (
-                  <SelectItem key={member.id} value={member.id}>
+                  <SelectItem key={member.id} value={member.id} className="text-[13px] rounded-lg">
                     {member?.user?.name}
                   </SelectItem>
                 ))}
@@ -120,19 +143,35 @@ const IssueForm = ({ onSubmit, defaultValues, submitLabel = "Create Issue", load
             </Select>
           )}
         />
-        {errors.assignedTo && <p className="text-xs text-destructive">{errors.assignedTo.message}</p>}
+        {errors.assignedTo && <p className="text-[12px] text-destructive mt-1.5">{errors.assignedTo.message}</p>}
       </div>
 
-      {errors.root && <ErrorMessage error={errors.root.message} />}
+      {/* Error */}
+      {errors.root && (
+        <div className="px-4 py-3 rounded-xl bg-red-500/5 border border-red-500/20">
+          <ErrorMessage error={errors.root.message} />
+        </div>
+      )}
 
+      {/* Actions */}
       <div className="flex gap-2 pt-2">
-        <Button type="button" variant="outline" className="flex-1" disabled={loading} onClick={() => reset()}>
+        <Button
+          type="button"
+          variant="outline"
+          className="flex-1 rounded-xl h-10 text-[13px]"
+          disabled={loading}
+          onClick={() => {
+            reset(defaultValues);
+            onClose?.();
+          }}
+        >
           Cancel
         </Button>
-        <Button variant="outline" type="submit" className="flex-1" disabled={loading}>
+        <Button type="submit" className="flex-1 rounded-xl h-10 text-[13px] gap-2 " disabled={loading} variant="outline">
           {loading ? (
             <>
-              <Loader2 size={14} className="animate-spin" /> Loading...
+              <Loader2 size={14} className="animate-spin" />
+              {defaultValues ? "Saving..." : "Creating..."}
             </>
           ) : (
             submitLabel

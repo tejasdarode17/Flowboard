@@ -1,6 +1,6 @@
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { Loader2, CloudUpload } from "lucide-react";
+import { Loader2, Camera, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -14,9 +14,10 @@ type WorkspaceFormProps = {
   defaultValues?: UpdateWorkspaceInput;
   submitLabel?: string;
   loading: boolean;
+  onClose?: () => void;
 };
 
-const WorkspaceForm = ({ onSubmit, defaultValues, submitLabel = "Create workspace", loading }: WorkspaceFormProps) => {
+const WorkspaceForm = ({ onSubmit, defaultValues, submitLabel = "Create workspace", loading, onClose }: WorkspaceFormProps) => {
   const {
     register,
     handleSubmit,
@@ -33,7 +34,6 @@ const WorkspaceForm = ({ onSubmit, defaultValues, submitLabel = "Create workspac
     },
   });
 
-  // Existing logo URL se preview
   const [preview, setPreview] = useState<string | null>(defaultValues?.logo || null);
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -72,10 +72,53 @@ const WorkspaceForm = ({ onSubmit, defaultValues, submitLabel = "Create workspac
   };
 
   return (
-    <form onSubmit={handleSubmit(handler)} className="space-y-4 pt-1">
-      {/* name */}
-      <div className="space-y-1.5">
-        <Label htmlFor="name">
+    <form onSubmit={handleSubmit(handler)} className="space-y-5 pt-1">
+      {/* Logo Upload */}
+      <div className="space-y-2">
+        <Label className="text-[13px] font-medium">Logo</Label>
+        <div className="flex items-start gap-5">
+          <div className="relative group">
+            <div className="h-24 w-24 rounded-xl border-2 border-border/40 overflow-hidden bg-muted/30">
+              {preview ? (
+                <img src={preview} alt="Logo" className="h-full w-full object-cover" />
+              ) : (
+                <div className="flex h-full w-full items-center justify-center">
+                  <Camera size={28} className="text-muted-foreground/40" strokeWidth={1.5} />
+                </div>
+              )}
+            </div>
+            {preview && (
+              <button
+                type="button"
+                onClick={() => {
+                  setPreview(null);
+                  setValue("logo", undefined, { shouldDirty: true });
+                }}
+                className="absolute -top-2 -right-2 h-6 w-6 rounded-full bg-destructive text-white flex items-center justify-center shadow-sm opacity-0 group-hover:opacity-100 transition-all duration-150 hover:bg-destructive/90"
+              >
+                <X size={12} strokeWidth={2.5} />
+              </button>
+            )}
+          </div>
+          <div className="space-y-2 pt-0.5">
+            <input id="logo" type="file" accept="image/*" className="hidden" onChange={handleFileChange} />
+            <label htmlFor="logo">
+              <Button type="button" variant="outline" size="sm" className="rounded-xl h-9 gap-2 cursor-pointer text-[13px]" asChild>
+                <span>
+                  <Camera size={14} strokeWidth={1.5} />
+                  {preview ? "Change logo" : "Upload logo"}
+                </span>
+              </Button>
+            </label>
+            <p className="text-[11px] text-muted-foreground/60">JPG, PNG or GIF. Max 5MB.</p>
+          </div>
+        </div>
+        {errors.logo && <p className="text-[12px] text-destructive mt-1.5">{errors.logo.message}</p>}
+      </div>
+
+      {/* Name */}
+      <div className="space-y-2">
+        <Label htmlFor="name" className="text-[13px] font-medium">
           Workspace name <span className="text-destructive">*</span>
         </Label>
         <Input
@@ -83,15 +126,17 @@ const WorkspaceForm = ({ onSubmit, defaultValues, submitLabel = "Create workspac
           placeholder="My Workspace"
           disabled={loading}
           {...register("name")}
-          className={`bg-card ${errors.name ? "border-destructive" : ""}`}
+          className={`h-10 rounded-xl bg-muted/30 border-border/40 text-[13px] placeholder:text-muted-foreground/40 ${
+            errors.name ? "border-red-500/40 focus-visible:ring-red-500/20" : ""
+          }`}
         />
-        {errors.name && <p className="text-xs text-destructive">{errors.name.message}</p>}
+        {errors.name && <p className="text-[12px] text-destructive mt-1.5">{errors.name.message}</p>}
       </div>
 
-      {/* description */}
-      <div className="space-y-1.5">
-        <Label htmlFor="description">
-          Description <span className="text-muted-foreground font-normal">(optional)</span>
+      {/* Description */}
+      <div className="space-y-2">
+        <Label htmlFor="description" className="text-[13px] font-medium">
+          Description <span className="text-muted-foreground/50 font-normal">(optional)</span>
         </Label>
         <textarea
           id="description"
@@ -99,48 +144,45 @@ const WorkspaceForm = ({ onSubmit, defaultValues, submitLabel = "Create workspac
           disabled={loading}
           rows={3}
           placeholder="What is this workspace for?"
-          className={`flex w-full rounded-md border border-input bg-background px-3 py-2 text-sm placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:opacity-50 resize-none ${
-            errors.description ? "border-destructive" : ""
+          className={`flex w-full rounded-xl border border-border/40 bg-muted/30 px-3.5 py-2.5 text-[13px] placeholder:text-muted-foreground/40 resize-none focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/20 focus-visible:border-border/60 disabled:opacity-50 transition-all duration-150 ${
+            errors.description ? "border-red-500/40" : ""
           }`}
         />
-        {errors.description && <p className="text-xs text-destructive">{errors.description.message}</p>}
+        {errors.description && <p className="text-[12px] text-destructive mt-1.5">{errors.description.message}</p>}
       </div>
 
-      {/* logo */}
-      <div className="w-24">
-        <input id="logo" type="file" accept="image/*" className="hidden" onChange={handleFileChange} />
-        <label htmlFor="logo" className="cursor-pointer">
-          {preview ? (
-            <img src={preview} className="h-24 w-24 object-cover rounded-xl" />
-          ) : (
-            <div className="h-24 border border-dashed flex justify-center items-center rounded-xl hover:bg-muted/50 transition-colors">
-              <CloudUpload size={20} className="text-muted-foreground" />
-            </div>
-          )}
-        </label>
-        {errors.logo && <p className="text-xs text-destructive">{errors.logo.message}</p>}
-      </div>
+      {/* Root Error */}
+      {errors.root && (
+        <div className="px-4 py-3 rounded-xl bg-red-500/5 border border-red-500/20">
+          <ErrorMessage error={errors.root.message} />
+        </div>
+      )}
 
-      {errors.root && <ErrorMessage error={errors.root.message} />}
-
-      {/* actions */}
+      {/* Actions */}
       <div className="flex gap-2 pt-1">
         <Button
           type="button"
           variant="outline"
-          className="flex-1"
+          className="flex-1 rounded-xl h-10 text-[13px]"
           disabled={loading}
           onClick={() => {
             reset();
             setPreview(defaultValues?.logo || null);
+            onClose?.();
           }}
         >
           Cancel
         </Button>
-        <Button variant="outline" type="submit" className="flex-1" disabled={loading || (defaultValues && !isDirty)}>
+        <Button
+          type="submit"
+          variant="outline"
+          className="flex-1 rounded-xl h-10 text-[13px] gap-2"
+          disabled={loading || (!!defaultValues && !isDirty)}
+        >
           {loading ? (
             <>
-              <Loader2 size={14} className="animate-spin" /> Loading…
+              <Loader2 size={14} className="animate-spin" />
+              {defaultValues ? "Saving..." : "Creating..."}
             </>
           ) : (
             submitLabel

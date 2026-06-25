@@ -133,7 +133,10 @@ export async function getProjects(workspaceId: string) {
 
 
 export async function getProjectDetails(projectId: string) {
-    const project = await prisma.project.findFirst({ where: { id: projectId }, include: { projectGithub: true } })
+    const project = await prisma.project.findFirst({
+        where: { id: projectId },
+        include: { projectGithub: true }
+    })
     if (!project) {
         throw new AppError("Project not found", 404);
     }
@@ -142,7 +145,7 @@ export async function getProjectDetails(projectId: string) {
 
 
 export async function deleteProject(projectId: string, workspaceId: string, actorId: string) {
- 
+
     const project = await prisma.project.findFirst({
         where: {
             id: projectId,
@@ -155,12 +158,6 @@ export async function deleteProject(projectId: string, workspaceId: string, acto
     }
 
     await prisma.$transaction(async (tx) => {
-        await tx.project.delete({
-            where: {
-                id: project.id,
-            },
-        });
-
         await createActivity(
             {
                 workspaceId,
@@ -176,6 +173,11 @@ export async function deleteProject(projectId: string, workspaceId: string, acto
             },
             tx
         );
+        await tx.project.delete({
+            where: {
+                id: project.id,
+            },
+        });
     });
 
     return {

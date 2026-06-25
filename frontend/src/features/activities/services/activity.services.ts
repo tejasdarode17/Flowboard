@@ -7,7 +7,6 @@ export const getActivities = async ({ workspaceSlug, range, cursor, limit }: Get
     const { data: response } = await api.get(`/api/workspace/${workspaceSlug}/activities`, {
         params: { range, cursor, limit }
     })
-    console.log(response.data);
     return response.data
 
 }

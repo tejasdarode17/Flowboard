@@ -2,7 +2,7 @@ import { useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import EmojiPicker from "emoji-picker-react";
-import { Loader2, Hash } from "lucide-react";
+import { Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -15,11 +15,12 @@ type ProjectFormProps = {
   onSubmit: (data: CreateProjectInput) => Promise<unknown>;
   loading: boolean;
   project?: Project;
+  onClose: () => void;
 };
 
-const ProjectForm = ({ onSubmit, loading, project }: ProjectFormProps) => {
+const ProjectForm = ({ onSubmit, loading, project, onClose }: ProjectFormProps) => {
   const [showPicker, setShowPicker] = useState(false);
-  const [selectedEmoji, setSelectedEmoji] = useState(project?.emoji || "🚀");
+  const [selectedEmoji, setSelectedEmoji] = useState(project?.emoji ?? "🚀");
 
   const {
     register,
@@ -27,14 +28,14 @@ const ProjectForm = ({ onSubmit, loading, project }: ProjectFormProps) => {
     reset,
     setValue,
     setError,
-    formState: { errors },
+    formState: { errors, isDirty },
   } = useForm<CreateProjectInput>({
     resolver: zodResolver(createProjectSchema),
     defaultValues: {
       name: project?.name || "",
       description: project?.description || "",
-      emoji: project?.emoji || "",
-      emojiId: project?.emojiId || "",
+      emoji: project?.emoji || "🚀",
+      emojiId: project?.emojiId || "rocket",
     },
   });
 
@@ -61,12 +62,12 @@ const ProjectForm = ({ onSubmit, loading, project }: ProjectFormProps) => {
             <button
               type="button"
               onClick={() => setShowPicker((prev) => !prev)}
-              className="h-10 w-10 flex items-center justify-center rounded-xl border border-border/40 bg-muted/30 text-xl hover:bg-accent/50 hover:border-border/60 transition-all duration-150"
+              className="h-10 w-10 flex items-center justify-center rounded-lg border border-input bg-card text-xl hover:bg-muted transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
             >
-              {selectedEmoji || <Hash size={18} className="text-muted-foreground/50" />}
+              {selectedEmoji}
             </button>
             {showPicker && (
-              <div className="absolute top-12 left-0 z-50 shadow-xl rounded-2xl overflow-hidden border border-border/40">
+              <div className="absolute top-12 left-0 z-50 shadow-lg rounded-xl overflow-hidden">
                 <EmojiPicker
                   onEmojiClick={(emojiData) => {
                     setValue("emoji", emojiData.emoji);
@@ -74,6 +75,7 @@ const ProjectForm = ({ onSubmit, loading, project }: ProjectFormProps) => {
                     setShowPicker(false);
                     setSelectedEmoji(emojiData.emoji);
                   }}
+                  className="bg-background"
                   height={380}
                   width={300}
                   previewConfig={{ showPreview: false }}
@@ -81,7 +83,6 @@ const ProjectForm = ({ onSubmit, loading, project }: ProjectFormProps) => {
               </div>
             )}
           </div>
-
           {/* Name Input */}
           <div className="flex-1">
             <Input
@@ -117,11 +118,7 @@ const ProjectForm = ({ onSubmit, loading, project }: ProjectFormProps) => {
       </div>
 
       {/* Error */}
-      {errors.root && (
-        <div className="px-4 py-3 rounded-xl bg-red-500/5 border border-red-500/20">
-          <ErrorMessage error={errors.root.message} />
-        </div>
-      )}
+      {errors.root && <ErrorMessage error={errors.root.message} />}
 
       {/* Actions */}
       <div className="flex gap-2 pt-1">
@@ -133,11 +130,12 @@ const ProjectForm = ({ onSubmit, loading, project }: ProjectFormProps) => {
           onClick={() => {
             reset();
             setShowPicker(false);
+            onClose();
           }}
         >
           Cancel
         </Button>
-        <Button variant="outline" type="submit" className="flex-1 rounded-xl h-10 text-[13px] gap-2" disabled={loading}>
+        <Button variant="outline" type="submit" className="flex-1 rounded-xl h-10 text-[13px] gap-2" disabled={loading || !isDirty}>
           {loading ? (
             <>
               <Loader2 size={14} className="animate-spin" />

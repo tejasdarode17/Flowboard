@@ -1,4 +1,4 @@
-import { LogOut, Sparkles, ArrowRight, Loader2 } from "lucide-react";
+import { Sparkles, ArrowRight } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import FlowBoardLogo from "@/shared/icons/FlowBoardLogo";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -7,30 +7,11 @@ import { Separator } from "@/components/ui/separator";
 import { useAppSelector } from "../hooks/useAppSelector";
 import { useState } from "react";
 import CreateWorkspace from "@/features/workspace/components/CreateWorkspace";
-import axios from "axios";
-import { useAppDispatch } from "../hooks/useAppDispatch";
-import { clearUser } from "@/redux/authSlice";
 
 const OnboardingSidebar = () => {
   const navigate = useNavigate();
-  const dispatch = useAppDispatch();
   const { userData } = useAppSelector((store) => store?.auth);
   const [open, setOpen] = useState<boolean>(false);
-  const [logoutLoading, setLogoutLoading] = useState<boolean>(false);
-
-  async function handleLogout() {
-    try {
-      setLogoutLoading(true);
-      console.log("fired");
-      await axios.post(`${import.meta.env.VITE_BACKEND_URL}/api/auth/logout`, {}, { withCredentials: true });
-      dispatch(clearUser());
-      navigate("/auth");
-    } catch (error) {
-      console.log(error);
-    } finally {
-      setLogoutLoading(false);
-    }
-  }
 
   return (
     <aside className="hidden lg:flex h-screen w-70 flex-col border-r border-border/40 bg-sidebar/50 backdrop-blur-sm px-3 py-4">
@@ -110,22 +91,6 @@ const OnboardingSidebar = () => {
               <p className="text-[11px] text-muted-foreground/60">Welcome aboard</p>
             </div>
           </button>
-
-          <Button
-            variant="ghost"
-            onClick={handleLogout}
-            disabled={logoutLoading}
-            className="mt-2 w-full justify-start gap-2.5 px-3 h-9 rounded-lg text-[13px] text-muted-foreground hover:text-foreground hover:bg-accent/50"
-          >
-            {logoutLoading ? (
-              <Loader2 className="mx-auto animate-spin"></Loader2>
-            ) : (
-              <>
-                <LogOut size={14} />
-                Sign out
-              </>
-            )}
-          </Button>
         </div>
       </div>
     </aside>

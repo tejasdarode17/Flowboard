@@ -19,7 +19,7 @@ interface Props {
 }
 
 const ChangeEmail = ({ children }: Props) => {
-  const { userData } = useAppSelector((store) => store.auth);
+  const { userData } = useAppSelector((store) => store?.auth);
   const [open, setOpen] = useState(false);
   const [step, setStep] = useState<"new-email" | "verify-otp">("new-email");
   const [isLoading, setIsLoading] = useState(false);
@@ -97,7 +97,7 @@ const ChangeEmail = ({ children }: Props) => {
               <DialogDescription className="text-[13px]">Enter your new email address. A verification OTP will be sent.</DialogDescription>
             </DialogHeader>
 
-            <form onSubmit={handleSendOTP} className="px-6 pb-6 space-y-4">
+            <form onSubmit={handleSendOTP} noValidate className="px-6 pb-6 space-y-4">
               <div className="space-y-2">
                 <Label className="text-[13px]">Current Email</Label>
                 <Input value={userData?.email || ""} disabled className="rounded-xl h-10 bg-muted/30 text-[13px]" />

@@ -31,13 +31,16 @@ const IssueDetails = ({ issueId, open, onClose }: Props) => {
           if (!value) onClose();
         }}
       >
-        <SheetContent className="w-full sm:max-w-lg overflow-y-auto">
-          <SheetHeader className="mb-6 mt-5">
+        <SheetContent className="w-full sm:max-w-lg overflow-y-auto  [&>button]:hidden">
+          <SheetHeader className="mb-3">
             <div className="flex items-start justify-between gap-3">
               <SheetTitle className="font-syne text-lg leading-snug">{issue?.title}</SheetTitle>
               <div className="flex items-center gap-1.5 shrink-0">
                 <button
-                  onClick={() => setUpdateOpen(true)}
+                  onClick={(e) => {
+                    e.currentTarget.blur();
+                    setUpdateOpen(true);
+                  }}
                   className="h-8 w-8 flex items-center justify-center rounded-lg hover:bg-accent/50 transition-all duration-150"
                 >
                   <Pencil size={14} className="text-muted-foreground" />
@@ -47,7 +50,7 @@ const IssueDetails = ({ issueId, open, onClose }: Props) => {
                   onClick={() => setDeleteOpen(true)}
                   className="h-8 w-8 flex items-center justify-center rounded-lg hover:bg-red-500/10 transition-all duration-150"
                 >
-                  <Trash2 size={14} className="text-muted-foreground hover:text-red-500" />
+                  <Trash2 size={14} className="text-red-700 hover:text-red-800" />
                 </button>
               </div>
             </div>
@@ -98,7 +101,7 @@ const IssueDetails = ({ issueId, open, onClose }: Props) => {
                 </div>
                 <div className="flex items-center gap-2">
                   <Avatar className="h-6 w-6 rounded-full border border-border/40">
-                    <AvatarImage src={issue?.assignee?.user?.avatar ?? ""} />
+                    <AvatarImage src={issue?.assignee?.user?.avatar} />
                     <AvatarFallback className="text-[10px]">{issue?.assignee?.user?.name?.charAt(0).toUpperCase()}</AvatarFallback>
                   </Avatar>
                   <span className="text-[12px]">{issue?.assignee?.user?.name}</span>
@@ -113,7 +116,7 @@ const IssueDetails = ({ issueId, open, onClose }: Props) => {
                 </div>
                 <div className="flex items-center gap-2">
                   <Avatar className="h-6 w-6 rounded-full border border-border/40">
-                    <AvatarImage src={issue?.creator?.user?.avatar ?? ""} />
+                    <AvatarImage src={issue?.creator?.user?.avatar} />
                     <AvatarFallback className="text-[10px]">{issue?.creator?.user?.name?.charAt(0).toUpperCase()}</AvatarFallback>
                   </Avatar>
                   <span className="text-[12px]">{issue?.creator?.user?.name}</span>

@@ -11,9 +11,8 @@ router.delete("/disconnect", verifyAuth, unlinkGithubAccountController);
 
 router.get("/repos", verifyAuth, getGitHubRepositoriesController);
 
-router.post("/link-repo/:workspaceSlug", verifyAuth, requireWorkspaceAccess, requireMemberRole(["OWNER", "ADMIN"]), linkRepositoryController);
-router.delete("/:workspaceSlug/project/:projectId", verifyAuth, requireWorkspaceAccess, requireMemberRole(["OWNER", "ADMIN"]), unlinkRepositoryController);
+router.post("/link-repo/:workspaceSlug", verifyAuth, requireWorkspaceAccess, requireMemberRole(["OWNER"]), linkRepositoryController);
+router.delete("/:workspaceSlug/project/:projectId", verifyAuth, requireWorkspaceAccess, requireMemberRole(["OWNER"]), unlinkRepositoryController);
 
 
 export default router;
-

@@ -1,11 +1,9 @@
-import { Loader2 } from "lucide-react";
-import FlowBoardLogo from "../icons/FlowBoardLogo";
+import FlowBoardAnimatedLogo from "../icons/FloeBoardAnimatedLogo";
 
 const MainLoder = () => {
   return (
     <div className=" h-screen gap-5 flex flex-col justify-center items-center">
-      <FlowBoardLogo size={50}></FlowBoardLogo>
-      <Loader2 className="animate-spin"></Loader2>
+      <FlowBoardAnimatedLogo size={48} animate={true}></FlowBoardAnimatedLogo>
     </div>
   );
 };

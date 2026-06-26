@@ -86,7 +86,7 @@ const IssueTableView = ({ issues, workspaceSlug, projectId }: IssueTableViewProp
                     {issue.assignee ? (
                       <div className="flex items-center gap-2">
                         <Avatar className="h-6 w-6 rounded-md border border-border/40">
-                          <AvatarImage src={issue.assignee.user?.avatar ?? ""} className="rounded-md" />
+                          <AvatarImage src={issue.assignee.user?.avatar} className="rounded-md" />
                           <AvatarFallback className="text-[10px] bg-accent rounded-md">
                             {issue.assignee.user?.name?.charAt(0).toUpperCase()}
                           </AvatarFallback>

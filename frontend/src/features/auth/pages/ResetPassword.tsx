@@ -5,10 +5,11 @@ import ErrorMessage from "@/shared/components/ErrorMessage";
 import { apiErrors, zodErrors } from "@/shared/utils/errorHandler";
 import { Loader2, Eye, EyeOff } from "lucide-react";
 import { useState, type FormEvent } from "react";
-import { useNavigate, useSearchParams } from "react-router-dom";
+import { Navigate, useNavigate, useSearchParams } from "react-router-dom";
 import { toast } from "sonner";
 import { inviteToken } from "@/shared/utils/inviteToken";
 import { passwordSchema } from "../validations/auth.validations";
+import StrengthBar from "../components/StrengthBar";
 
 const ResetPassword = () => {
   const [newPassword, setNewPassword] = useState("");
@@ -22,6 +23,10 @@ const ResetPassword = () => {
   const email = searchParams.get("email");
   const token = inviteToken.get();
 
+  if (!email) {
+    return <Navigate to="/" replace />;
+  }
+  
   async function handleSubmit(e: FormEvent) {
     try {
       e.preventDefault();
@@ -36,7 +41,6 @@ const ResetPassword = () => {
       await api.post("/api/auth/reset-password", { email, password: newPassword });
       toast.success("Password has been changed successfully");
       navigate(token ? `/invite/${token}` : "/");
-      
     } catch (error) {
       setErrors(apiErrors(error));
     } finally {
@@ -48,7 +52,7 @@ const ResetPassword = () => {
     <div className="flex flex-col justify-center items-center h-full w-full mx-auto max-w-sm">
       <div className="mb-6 text-center">
         <h1 className="text-2xl font-semibold tracking-tight">Reset password</h1>
-        <p className="mt-2 text-sm text-muted-foreground">Enter the OTP sent to your email and choose a new password.</p>
+        <p className="mt-2 text-sm text-muted-foreground">choose a new password.</p>
         {email && <p className="text-sm font-medium mt-1">{email}</p>}
       </div>
 
@@ -65,10 +69,11 @@ const ResetPassword = () => {
               value={newPassword}
               onChange={(e) => {
                 setNewPassword(e.target.value);
-                setErrors((prev) => ({
-                  ...prev,
-                  newPassword: "",
-                }));
+                // setErrors((prev) => ({
+                //   ...prev,
+                //   newPassword: "",
+                // }));
+                setErrors({});
               }}
               placeholder="Enter new password"
               disabled={loading}
@@ -86,6 +91,8 @@ const ResetPassword = () => {
 
           {errors.password && <p className="text-xs text-destructive">{errors.password}</p>}
         </div>
+
+        <StrengthBar errors={errors} password={newPassword}></StrengthBar>
 
         {errors.error && <ErrorMessage error={errors.error} />}
 

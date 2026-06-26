@@ -8,7 +8,7 @@ import { apiErrors } from "@/shared/utils/errorHandler";
 import { inviteToken } from "@/shared/utils/inviteToken";
 import { Loader2 } from "lucide-react";
 import { useState, type FormEvent } from "react";
-import { useNavigate, useSearchParams } from "react-router-dom";
+import { Navigate, useNavigate, useSearchParams } from "react-router-dom";
 
 const VerifyAccount = () => {
   const [otp, setOtp] = useState("");
@@ -20,6 +20,11 @@ const VerifyAccount = () => {
 
   const email = searchParams.get("email");
   const token = inviteToken.get();
+
+  if (!email) {
+    return <Navigate to="/" replace />;
+  }
+
   async function handleSubmit(e: FormEvent) {
     try {
       e.preventDefault();
@@ -66,7 +71,7 @@ const VerifyAccount = () => {
           </InputOTP>
         </div>
         {errors.error && <ErrorMessage error={errors.error} />}
-        <Button type="submit" disabled={loading} className="w-full" variant="outline">
+        <Button type="submit" disabled={loading || otp.length !== 6} className="w-full" variant="outline">
           {loading ? (
             <>
               <Loader2 size={15} className="animate-spin" />

@@ -10,6 +10,7 @@ import { useAppSelector } from "@/shared/hooks/useAppSelector";
 import { useParams } from "react-router-dom";
 import { useCurrentWorkspace } from "../hooks/useCurrentWorkspace";
 import ChangeRole from "@/features/workspace/components/ChangeRole";
+import { useState } from "react";
 
 interface MemberCardProps {
   member: WorkspaceMember;
@@ -18,8 +19,9 @@ interface MemberCardProps {
 const MemberCard = ({ member }: MemberCardProps) => {
   const navigate = useNavigate();
   const { workspaceSlug } = useParams();
-  const { userData } = useAppSelector((store) => store.auth);
+  const { userData } = useAppSelector((store) => store?.auth);
   const isCurrentUser = member.user.id === userData?.id;
+  const [dropDownOpen, setDropDownOpen] = useState(false);
 
   const { currentWorkspace } = useCurrentWorkspace();
   const isOwner = currentWorkspace?.role === "OWNER";
@@ -67,7 +69,7 @@ const MemberCard = ({ member }: MemberCardProps) => {
       {/* Action Menu - Only show for other members if Owner */}
       {!isCurrentUser && isOwner && (
         <div className="relative z-20 shrink-0">
-          <DropdownMenu>
+          <DropdownMenu open={dropDownOpen} onOpenChange={setDropDownOpen}>
             <DropdownMenuTrigger asChild>
               <button
                 onClick={(e) => e.stopPropagation()}
@@ -77,7 +79,7 @@ const MemberCard = ({ member }: MemberCardProps) => {
               </button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end" side="bottom" className="w-44 rounded-xl p-1" onClick={(e) => e.stopPropagation()}>
-              <ChangeRole member={member} workspaceSlug={workspaceSlug!}>
+              <ChangeRole onClose={() => setDropDownOpen(false)} member={member} workspaceSlug={workspaceSlug!}>
                 <DropdownMenuItem className="text-[13px] rounded-lg cursor-pointer py-2 px-3" onSelect={(e) => e.preventDefault()}>
                   Change role
                 </DropdownMenuItem>
@@ -85,7 +87,7 @@ const MemberCard = ({ member }: MemberCardProps) => {
 
               <Separator className="my-1 bg-border/40" />
 
-              <RemoveMember member={member} workspaceSlug={workspaceSlug!}>
+              <RemoveMember onClose={() => setDropDownOpen(false)} member={member} workspaceSlug={workspaceSlug!}>
                 <DropdownMenuItem
                   className="text-[13px] text-red-500 rounded-lg cursor-pointer hover:text-red-500! py-2 px-3"
                   onSelect={(e) => e.preventDefault()}

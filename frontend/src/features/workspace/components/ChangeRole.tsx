@@ -25,6 +25,7 @@ interface ChangeRoleDialogProps {
   member: WorkspaceMember;
   workspaceSlug: string;
   children: React.ReactNode;
+  onClose: () => void;
 }
 
 const roles: RoleConfig[] = [
@@ -48,7 +49,7 @@ const roles: RoleConfig[] = [
   },
 ];
 
-const ChangeRole = ({ member, workspaceSlug, children }: ChangeRoleDialogProps) => {
+const ChangeRole = ({ member, workspaceSlug, children, onClose }: ChangeRoleDialogProps) => {
   const [open, setOpen] = useState(false);
   const [selectedRole, setSelectedRole] = useState<MemberRole>(member.role === "OWNER" ? "ADMIN" : member.role);
   const { mutate: updateRole, isPending } = useUpdateMemberRole();
@@ -60,6 +61,7 @@ const ChangeRole = ({ member, workspaceSlug, children }: ChangeRoleDialogProps) 
         onSuccess: () => {
           toast.success(`${member.user.name}'s role changed to ${selectedRole}`);
           setOpen(false);
+          onClose();
         },
         onError: (error) => {
           const err = apiErrors(error);

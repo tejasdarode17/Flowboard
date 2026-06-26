@@ -70,7 +70,7 @@ const VerifyPasswordOtp = () => {
 
         {errors.error && <ErrorMessage error={errors.error} />}
 
-        <Button type="submit" disabled={loading || otp.length !== 6} className="w-full">
+        <Button variant="outline" type="submit" disabled={loading || otp.length !== 6} className="w-full">
           {loading ? (
             <>
               <Loader2 size={15} className="animate-spin" />

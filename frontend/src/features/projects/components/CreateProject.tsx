@@ -40,7 +40,7 @@ const CreateProject = () => {
           </div>
         </DialogHeader>
         <div className="px-6 pb-6">
-          <ProjectForm onSubmit={handleSubmit} loading={isPending} />
+          <ProjectForm onSubmit={handleSubmit} onClose={() => setOpen(false)} loading={isPending} />
         </div>
       </DialogContent>
     </Dialog>

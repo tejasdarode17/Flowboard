@@ -19,7 +19,7 @@ import VerifyAccount from "./features/auth/pages/VerifyAccount";
 import ForgotPassword from "./features/auth/pages/ForgetPassword";
 import VerifyPasswordOtp from "./features/auth/pages/VerifyPasswordOtp";
 import ResetPassword from "./features/auth/pages/ResetPassword";
-import Redirect from "./features/auth/pages/Redirect";
+import Redirect from "./features/auth/components/Redirect";
 
 // Workspace
 import Invite from "./features/workspace/pages/Invite";
@@ -56,7 +56,7 @@ const appRouter = createBrowserRouter([
       { path: "verify", element: <VerifyAccount /> },
       { path: "forgot-password", element: <ForgotPassword /> },
       { path: "verify-password", element: <VerifyPasswordOtp /> },
-      { path: "reset-password", element: <ResetPassword /> },
+      { path: "reset-password", element: <ResetPassword></ResetPassword> },
     ],
   },
 
@@ -102,7 +102,6 @@ const appRouter = createBrowserRouter([
           { index: true, element: <Dashboard /> },
           { path: "projects", element: <Projects /> },
           { path: "projects/:projectId", element: <ProjectDetails /> },
-          // { path: "projects/:projectId/issues/:issueId", element: <IssueDetails /> },
           { path: "team", element: <Members /> },
           { path: "settings", element: <WorkspaceSettings /> },
           { path: "activities", element: <Activities /> },

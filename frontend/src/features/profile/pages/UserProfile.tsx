@@ -4,16 +4,35 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { useAppSelector } from "@/shared/hooks/useAppSelector";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Button } from "@/components/ui/button";
-import { Mail, Calendar, AtSign, ArrowLeft, Shield, User, Lock, ChevronRight } from "lucide-react";
+import { Mail, Calendar, AtSign, ArrowLeft, Shield, User, Lock, ChevronRight, Loader2, LogOut } from "lucide-react";
 import { Link } from "react-router-dom";
 import { joinedDate } from "@/shared/utils/formatDate";
 import ConnectUserGithub from "../components/ConnectUserGithub";
+import { useState } from "react";
+import { clearUser } from "@/redux/authSlice";
+import axios from "axios";
+import { useAppDispatch } from "@/shared/hooks/useAppDispatch";
 
 const UserProfile = () => {
   const { username } = useParams();
   const loggedInUser = useAppSelector((state) => state.auth.userData);
   const { data, isLoading, error, isFetching } = useUserProfile(username);
   const navigate = useNavigate();
+  const dispatch = useAppDispatch();
+  const [logoutLoading, setLogoutLoading] = useState<boolean>(false);
+
+  async function handleLogout() {
+    try {
+      setLogoutLoading(true);
+      await axios.post(`${import.meta.env.VITE_BACKEND_URL}/api/auth/logout`, {}, { withCredentials: true });
+      dispatch(clearUser());
+      navigate("/auth");
+    } catch (error) {
+      console.log(error);
+    } finally {
+      setLogoutLoading(false);
+    }
+  }
 
   if (isLoading) {
     return <ProfileSkeleton />;
@@ -97,6 +116,7 @@ const UserProfile = () => {
                   </div>
                   <ChevronRight size={14} className="text-muted-foreground/40 group-hover:text-muted-foreground transition-all" />
                 </Link>
+
                 <Link
                   to={`/profile/${data?.username}/settings`}
                   className="w-full flex items-center justify-between px-6 py-3.5 hover:bg-accent/20 transition-all duration-150 group"
@@ -107,6 +127,23 @@ const UserProfile = () => {
                   </div>
                   <ChevronRight size={14} className="text-muted-foreground/40 group-hover:text-muted-foreground transition-all" />
                 </Link>
+
+                {/* Sign Out */}
+                <button
+                  onClick={handleLogout}
+                  disabled={logoutLoading}
+                  className="w-full flex items-center justify-between px-6 py-3.5 hover:bg-accent/20 transition-all duration-150 group"
+                >
+                  <div className="flex items-center gap-3 min-w-0">
+                    {logoutLoading ? (
+                      <Loader2 size={15} className="text-red-500 animate-spin" strokeWidth={1.5} />
+                    ) : (
+                      <LogOut size={15} className="text-red-500" strokeWidth={1.5} />
+                    )}
+                    <span className="text-[13px]">Sign out</span>
+                  </div>
+                  <ChevronRight size={14} className="text-muted-foreground/40 group-hover:text-muted-foreground transition-all" />
+                </button>
               </div>
             </div>
           )}
@@ -148,15 +185,17 @@ const UserProfile = () => {
             </div>
           </div>
 
-          <div className="rounded-2xl border border-border/40 bg-card/50 backdrop-blur-sm overflow-hidden">
-            <div className="px-6 py-4 border-b border-border/30">
-              <h2 className="font-semibold text-[15px]">Integrations</h2>
-              <p className="text-[13px] text-muted-foreground mt-0.5">Connect external services to enhance your workflow</p>
+          {isSelf && (
+            <div className="rounded-2xl border border-border/40 bg-card/50 backdrop-blur-sm overflow-hidden">
+              <div className="px-6 py-4 border-b border-border/30">
+                <h2 className="font-semibold text-[15px]">Integrations</h2>
+                <p className="text-[13px] text-muted-foreground mt-0.5">Connect external services to enhance your workflow</p>
+              </div>
+              <div className="p-6">
+                <ConnectUserGithub />
+              </div>
             </div>
-            <div className="p-6">
-              <ConnectUserGithub />
-            </div>
-          </div>
+          )}
         </div>
       </div>
     </div>

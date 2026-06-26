@@ -1,36 +1,59 @@
-import { FolderKanban, LayoutGrid, Loader2, LogOut, Settings, Users2, ChevronDown, Plus, Activity } from "lucide-react";
+import { FolderKanban, LayoutGrid, Loader2, Settings, Users2, ChevronDown, Plus, Activity, Menu } from "lucide-react";
 import { NavLink, useNavigate, useParams } from "react-router-dom";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
+import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 import FlowBoardLogo from "@/shared/icons/FlowBoardLogo";
 import { useWorkspaces } from "@/features/workspace/hooks/useWorkspaces";
 import { useState } from "react";
 import CreateWorkspace from "@/features/workspace/components/CreateWorkspace";
 import { useAppSelector } from "../hooks/useAppSelector";
 import DarkMode from "@/shared/components/DarkMode";
-import axios from "axios";
-import { clearUser } from "@/redux/authSlice";
-import { useAppDispatch } from "../hooks/useAppDispatch";
 import MemberBadge from "@/features/workspace/components/MemberBadge";
 import NotificationBell from "@/features/notifications/components/NotificationBell";
 
 const Sidebar = () => {
   return (
-    <aside className="min-h-screen hidden w-70 lg:flex flex-col border-r border-border/40 bg-sidebar/50 backdrop-blur-sm">
-      <SideBarContent />
-    </aside>
+    <>
+      {/* Mobile Sheet Trigger */}
+      <div className="lg:hidden fixed top-0 left-0 right-0 z-40 bg-background/80 backdrop-blur-xl border-b border-border/40">
+        <div className="flex items-center justify-between px-4 py-2.5">
+          <div className="flex items-center gap-2.5">
+            <Sheet>
+              <SheetTrigger asChild>
+                <button className="h-9 w-9 flex items-center justify-center rounded-xl hover:bg-accent/50 transition-all duration-150">
+                  <Menu size={18} strokeWidth={1.5} />
+                </button>
+              </SheetTrigger>
+              <SheetContent side="left" className="w-70 p-0  [&>button]:hidden">
+                <SideBarContent />
+              </SheetContent>
+            </Sheet>
+            <div className="flex items-center gap-2">
+              <div className="flex items-center justify-center h-7 w-7 rounded-lg bg-foreground/5">
+                <FlowBoardLogo size={18} />
+              </div>
+              <span className="text-sm font-semibold font-heading tracking-tight">FlowBoard</span>
+            </div>
+          </div>
+          <NotificationBell />
+        </div>
+      </div>
+
+      {/* Desktop Sidebar */}
+      <aside className="hidden lg:flex min-h-screen w-70 flex-col border-r border-border/40 bg-sidebar/50 backdrop-blur-sm">
+        <SideBarContent />
+      </aside>
+    </>
   );
 };
 
 export const SideBarContent = () => {
   const navigate = useNavigate();
-  const dispatch = useAppDispatch();
   const { userData } = useAppSelector((store) => store?.auth);
   const [open, setOpen] = useState<boolean>(false);
   const [workspaceMenuOpen, setWorkspaceMenuOpen] = useState(false);
-
-  const [logoutLoading, setLogoutLoading] = useState<boolean>(false);
 
   const { workspaceSlug } = useParams();
   const { data: workspaces, isLoading } = useWorkspaces();
@@ -75,20 +98,6 @@ export const SideBarContent = () => {
     navigate(`/${slug}`);
   }
 
-  async function handleLogout() {
-    try {
-      setLogoutLoading(true);
-      console.log("fired");
-      await axios.post(`${import.meta.env.VITE_BACKEND_URL}/api/auth/logout`, {}, { withCredentials: true });
-      dispatch(clearUser());
-      navigate("/auth");
-    } catch (error) {
-      console.log(error);
-    } finally {
-      setLogoutLoading(false);
-    }
-  }
-
   return (
     <div className="flex flex-col h-full px-3 py-4">
       {/* Brand header */}
@@ -105,7 +114,7 @@ export const SideBarContent = () => {
         <NotificationBell />
       </div>
 
-      {/* Workspace switcher - Linear style dropdown */}
+      {/* Workspace switcher */}
       <div className="mt-6 px-1">
         <button
           onClick={() => setWorkspaceMenuOpen(!workspaceMenuOpen)}
@@ -144,7 +153,7 @@ export const SideBarContent = () => {
                     setWorkspaceMenuOpen(false);
                   }}
                   className={`w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm transition-all duration-150 ${
-                    ws.slug === workspaceSlug
+                    ws.slug === (workspaceSlug ?? lastSlug)
                       ? "bg-accent text-foreground font-medium"
                       : "hover:bg-accent/50 text-muted-foreground hover:text-foreground"
                   }`}
@@ -156,7 +165,7 @@ export const SideBarContent = () => {
                     </AvatarFallback>
                   </Avatar>
                   <span className="truncate">{ws?.name}</span>
-                  {ws.slug === workspaceSlug && <span className="ml-auto h-1.5 w-1.5 rounded-full bg-primary" />}
+                  {ws.slug === (workspaceSlug ?? lastSlug) && <span className="ml-auto h-1.5 w-1.5 rounded-full bg-primary" />}
                 </button>
               ))}
             </div>
@@ -190,7 +199,7 @@ export const SideBarContent = () => {
           <NavLink
             key={path}
             to={path}
-            end={path === `/${workspaceSlug}`}
+            end={path === `/${workspaceSlug ?? lastSlug}`}
             className={({ isActive }) =>
               `group flex items-center gap-2.5 px-3 py-1.5 rounded-lg text-[13px] transition-all duration-150 ${
                 isActive ? "bg-accent text-foreground font-medium" : "text-muted-foreground hover:text-foreground hover:bg-accent/50"
@@ -210,16 +219,14 @@ export const SideBarContent = () => {
         ))}
       </nav>
 
-      {/* Bottom section - Theme toggle + User */}
+      {/* Bottom section */}
       <div className="mt-auto space-y-2">
-        {/* Theme Toggle - Properly styled wrapper */}
         <div className="px-2">
           <DarkMode />
         </div>
 
         <Separator className="bg-border/40" />
 
-        {/* User section */}
         <div className="px-2">
           <button
             onClick={() => userData?.id && navigate(`/profile/${userData.username}`)}
@@ -234,26 +241,10 @@ export const SideBarContent = () => {
             <div className="flex-1 min-w-0 text-left">
               <p className="text-[13px] font-medium truncate">{userData?.name}</p>
               <p className="text-[11px] text-muted-foreground/60">
-                <MemberBadge role={currentWorkspace?.role ?? "MEMBER"}></MemberBadge>
+                <MemberBadge role={currentWorkspace?.role ?? "MEMBER"} />
               </p>
             </div>
           </button>
-
-          <Button
-            variant="ghost"
-            onClick={handleLogout}
-            disabled={logoutLoading}
-            className="mt-2 w-full justify-start gap-2.5 px-3 h-9 rounded-lg text-[13px] text-muted-foreground hover:text-foreground hover:bg-accent/50"
-          >
-            {logoutLoading ? (
-              <Loader2 className="animate-spin"></Loader2>
-            ) : (
-              <>
-                <LogOut size={14} />
-                Sign out
-              </>
-            )}
-          </Button>
         </div>
       </div>
     </div>

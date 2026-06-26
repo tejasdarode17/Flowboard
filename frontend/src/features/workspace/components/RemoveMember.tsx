@@ -12,9 +12,10 @@ interface RemoveMemberDialogProps {
   member: WorkspaceMember;
   workspaceSlug: string;
   children: React.ReactNode;
+  onClose: () => void;
 }
 
-const RemoveMember = ({ member, workspaceSlug, children }: RemoveMemberDialogProps) => {
+const RemoveMember = ({ member, workspaceSlug, children, onClose }: RemoveMemberDialogProps) => {
   const [open, setOpen] = useState(false);
   const { mutate: removeMember, isPending } = useRemoveMember();
 
@@ -25,6 +26,7 @@ const RemoveMember = ({ member, workspaceSlug, children }: RemoveMemberDialogPro
         onSuccess: () => {
           toast.success(`${member.user.name} removed from workspace`);
           setOpen(false);
+          onClose();
         },
         onError: (error) => {
           const err = apiErrors(error);

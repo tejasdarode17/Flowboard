@@ -29,7 +29,7 @@ const IssueForm = ({ onSubmit, defaultValues, submitLabel = "Create Issue", load
     reset,
     control,
     setError,
-    formState: { errors },
+    formState: { errors, isDirty },
   } = useForm<CreateIssueInput>({
     resolver: zodResolver(createIssueSchema),
     defaultValues: defaultValues ?? {
@@ -135,7 +135,7 @@ const IssueForm = ({ onSubmit, defaultValues, submitLabel = "Create Issue", load
               </SelectTrigger>
               <SelectContent className="rounded-xl">
                 {members?.map((member) => (
-                  <SelectItem key={member.id} value={member.id} className="text-[13px] rounded-lg">
+                  <SelectItem key={member.id} value={member.id} className="text-[13px] rounded-lg hover:bg-gray-800">
                     {member?.user?.name}
                   </SelectItem>
                 ))}
@@ -167,7 +167,7 @@ const IssueForm = ({ onSubmit, defaultValues, submitLabel = "Create Issue", load
         >
           Cancel
         </Button>
-        <Button type="submit" className="flex-1 rounded-xl h-10 text-[13px] gap-2 " disabled={loading} variant="outline">
+        <Button type="submit" className="flex-1 rounded-xl h-10 text-[13px] gap-2 " disabled={loading || !isDirty} variant="outline">
           {loading ? (
             <>
               <Loader2 size={14} className="animate-spin" />

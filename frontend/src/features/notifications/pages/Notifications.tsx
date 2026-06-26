@@ -1,7 +1,8 @@
 import { useMemo } from "react";
 import { useParams } from "react-router-dom";
-import { Loader2, Bell, BellOff } from "lucide-react";
+import { Loader2, Bell, BellOff, Clock } from "lucide-react";
 import { useNotifications } from "../hooks/useNotifications";
+import { getNotificationIcon, getNotificationConfig } from "../utils/notificationConfig";
 import type { Notification } from "../types/notification.types";
 import NotificationsSkeleton from "../shimmers/NotificationSkeleton";
 
@@ -31,16 +32,25 @@ const Notifications = () => {
     );
   }
 
+  const unreadCount = notifications.filter((n) => !n.read).length;
+
   return (
     <div className="px-4 py-6 md:px-8 md:py-8 max-w-225 mx-auto">
       {/* Header */}
       <div className="mb-8">
-        <h1 className="text-2xl font-semibold font-heading tracking-tight">Notifications</h1>
-        <p className="text-[13px] text-muted-foreground mt-1.5">
-          {notifications.length > 0
-            ? `Stay up to date with activity in this workspace`
-            : "You'll see notifications about activity in your workspace here"}
-        </p>
+        <div className="flex items-center gap-3 mb-2">
+          <div className="flex items-center justify-center h-10 w-10 rounded-xl bg-muted/50 border border-border/40">
+            <Bell size={18} className="text-muted-foreground" strokeWidth={1.5} />
+          </div>
+          <div>
+            <h1 className="text-2xl font-semibold font-heading tracking-tight">Notifications</h1>
+            {unreadCount > 0 && (
+              <p className="text-[13px] text-muted-foreground mt-0.5">
+                {unreadCount} unread {unreadCount === 1 ? "notification" : "notifications"}
+              </p>
+            )}
+          </div>
+        </div>
       </div>
 
       {notifications.length === 0 ? (
@@ -58,33 +68,59 @@ const Notifications = () => {
       ) : (
         <>
           <div className="space-y-2">
-            {notifications.map((notification: Notification) => (
-              <div
-                key={notification.id}
-                className={`rounded-2xl border p-5 transition-all duration-150 hover:shadow-sm ${
-                  !notification.read ? "border-border/60 bg-accent/10" : "border-border/40 bg-card/50"
-                }`}
-              >
-                <div className="flex items-start justify-between gap-4">
-                  <div className="min-w-0">
-                    <h2 className="text-[14px] font-semibold">{notification.title}</h2>
-                    <p className="mt-1 text-[13px] text-muted-foreground leading-relaxed">{notification.message}</p>
-                  </div>
+            {notifications.map((notification: Notification) => {
+              const Icon = getNotificationIcon(notification.type);
+              const config = getNotificationConfig(notification.type);
 
-                  {!notification.read && <div className="mt-1.5 h-2 w-2 rounded-full bg-blue-500 shrink-0" />}
+              return (
+                <div
+                  key={notification.id}
+                  className={`relative rounded-2xl border p-5 transition-all duration-150 hover:shadow-sm ${
+                    !notification.read ? "border-border/60 bg-accent/5" : "border-border/40"
+                  }`}
+                >
+                  {/* Unread indicator line */}
+                  {!notification.read && <div className="absolute left-0 top-4 bottom-4 w-0.5 rounded-full bg-blue-500" />}
+
+                  <div className="flex gap-4">
+                    {/* Icon */}
+                    <div
+                      className={`flex items-center justify-center h-9 w-9 rounded-xl border shrink-0 mt-0.5 ${config.bg} ${config.border}`}
+                    >
+                      <Icon size={15} className={config.color} strokeWidth={1.5} />
+                    </div>
+
+                    {/* Content */}
+                    <div className="min-w-0 flex-1">
+                      <div className="flex items-start justify-between gap-3">
+                        <div className="min-w-0">
+                          <h2 className="text-[14px] font-semibold">{notification.title}</h2>
+                          <p className="mt-1 text-[13px] text-muted-foreground leading-relaxed">{notification.message}</p>
+                        </div>
+
+                        {!notification.read && <div className="mt-1.5 h-2 w-2 rounded-full bg-blue-500 shrink-0" />}
+                      </div>
+
+                      {/* Project badge */}
+                      {notification.project && (
+                        <div className="mt-3">
+                          <span className="inline-flex items-center gap-1 rounded-md border border-border/40 bg-muted/30 px-2 py-0.5 text-[11px] font-medium">
+                            {/* {notification.project.emoji && <span>{notification.project.emoji}</span>} */}
+                            {notification.project.name}
+                          </span>
+                        </div>
+                      )}
+
+                      {/* Timestamp */}
+                      <div className="flex items-center gap-1.5 mt-3">
+                        <Clock size={11} className="text-muted-foreground/40" />
+                        <p className="text-[11px] text-muted-foreground/50">{new Date(notification.createdAt).toLocaleString()}</p>
+                      </div>
+                    </div>
+                  </div>
                 </div>
-
-                {notification.project && (
-                  <div className="mt-3">
-                    <span className="inline-flex items-center gap-1 rounded-md border border-border/40 bg-muted/30 px-2 py-0.5 text-[11px] font-medium">
-                      {notification.project.name}
-                    </span>
-                  </div>
-                )}
-
-                <p className="mt-3 text-[11px] text-muted-foreground/50">{new Date(notification.createdAt).toLocaleString()}</p>
-              </div>
-            ))}
+              );
+            })}
           </div>
 
           {hasNextPage && (

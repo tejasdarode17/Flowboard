@@ -33,16 +33,16 @@ const UpdateProject = ({ project }: UpdateProjectProps) => {
         <DialogHeader className="px-6 pt-6 pb-4">
           <div className="flex items-center gap-3.5">
             <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-muted/50 border border-border/40 shrink-0 text-lg">
-              {project?.emoji || "🚀"}
+              {project?.emoji}
             </div>
             <div>
-              <DialogTitle className="text-lg font-semibold font-heading tracking-tight">Project Settings</DialogTitle>
+              <DialogTitle className="text-lg font-semibold font-heading">Project Settings</DialogTitle>
               <DialogDescription className="text-[13px] text-muted-foreground mt-0.5">Update {project?.name}'s details.</DialogDescription>
             </div>
           </div>
         </DialogHeader>
         <div className="px-6 pb-6">
-          <ProjectForm onSubmit={handleSubmit} loading={isPending} project={project} />
+          <ProjectForm onSubmit={handleSubmit} onClose={() => setOpen(false)} loading={isPending} project={project} />
         </div>
       </DialogContent>
     </Dialog>

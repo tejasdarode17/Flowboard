@@ -51,7 +51,9 @@ const ProjectDetails = () => {
   const { data: issues, isLoading: isIssuesLoading } = useIssues(workspaceSlug!, projectId!);
   const { currentWorkspace } = useCurrentWorkspace();
 
-  const isOwnerOrAdmin = currentWorkspace?.role === "ADMIN" || currentWorkspace?.role === "OWNER";
+  const isOwner = currentWorkspace?.role === "OWNER";
+  const isAdmin = currentWorkspace?.role === "ADMIN";
+  const canManageProject = isOwner || isAdmin;
   const isLinked = !!project?.projectGithub;
 
   const groupedIssues = useMemo(() => {
@@ -115,14 +117,20 @@ const ProjectDetails = () => {
           </div>
           <div className="flex items-center gap-2 shrink-0">
             <CreateIssue open={createIssueOpen} setOpen={setCreateIssueOpen} />
-            {isOwnerOrAdmin && (
+
+            {/* Only OWNER can manage GitHub */}
+            {isOwner &&
+              (isLinked ? (
+                <UnlinkRepository projectId={projectId!} workspaceSlug={workspaceSlug!} />
+              ) : (
+                <LinkRepository projectId={projectId!} />
+              ))}
+
+            {/* OWNER + ADMIN */}
+            {canManageProject && (
               <>
-                {isLinked ? (
-                  <UnlinkRepository projectId={projectId!} workspaceSlug={workspaceSlug!} />
-                ) : (
-                  <LinkRepository projectId={projectId!} />
-                )}
                 <UpdateProject project={project!} />
+
                 <DeleteProject
                   projectName={project?.name || ""}
                   projectId={projectId!}

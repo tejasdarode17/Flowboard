@@ -5,11 +5,12 @@ import { Outlet } from "react-router-dom";
 
 const MainLayout = () => {
   const { data: workspaces } = useWorkspaces();
+
   return (
-    <div className="min-h-screen bg-background text-foreground">
+    <div className="min-h-screen bg-background text-foreground antialiased">
       <div className="grid min-h-screen lg:grid-cols-[290px_1fr]">
         {workspaces?.length ? <Sidebar /> : <OnboardingSidebar />}
-        <main className="overflow-x-hidden">
+        <main className="overflow-x-hidden pt-14 lg:pt-0">
           <Outlet />
         </main>
       </div>

@@ -46,7 +46,7 @@ const DeleteProject = ({ workspaceSlug, projectName, projectId }: DeleteWorkspac
       <AlertDialogTrigger asChild>
         <Button className="bg-red-700 hover:bg-red-800 rounded-xl h-9 gap-2 text-[13px]" variant="outline">
           <Trash2 size={17} strokeWidth={1.5} />
-          Delete Project
+          <p className="hidden lg:flex">Delete Project</p>
         </Button>
       </AlertDialogTrigger>
       <AlertDialogContent className="sm:max-w-md rounded-2xl p-0 gap-0">
@@ -76,7 +76,12 @@ const DeleteProject = ({ workspaceSlug, projectName, projectId }: DeleteWorkspac
           <AlertDialogCancel disabled={isPending} className="flex-1 rounded-xl h-10 text-[13px] mt-0">
             Cancel
           </AlertDialogCancel>
-          <Button onClick={handleDelete} disabled={isPending} variant="destructive" className="flex-1 rounded-xl h-10 text-[13px] gap-2 bg-red-700 hover:bg-red-800">
+          <Button
+            onClick={handleDelete}
+            disabled={isPending}
+            variant="destructive"
+            className="flex-1 rounded-xl h-10 text-[13px] gap-2 bg-red-700 hover:bg-red-800"
+          >
             {isPending ? (
               <>
                 <Loader2 size={14} className="animate-spin" />

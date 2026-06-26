@@ -152,11 +152,7 @@ const WorkspaceForm = ({ onSubmit, defaultValues, submitLabel = "Create workspac
       </div>
 
       {/* Root Error */}
-      {errors.root && (
-        <div className="px-4 py-3 rounded-xl bg-red-500/5 border border-red-500/20">
-          <ErrorMessage error={errors.root.message} />
-        </div>
-      )}
+      {errors.root && <ErrorMessage error={errors.root.message} />}
 
       {/* Actions */}
       <div className="flex gap-2 pt-1">

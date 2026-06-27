@@ -438,9 +438,8 @@ export async function processGitHubWebhook(event: GithubEvent, payload: GithubWe
 
 
 
-// agar wohi banda unlink karta hai account jiske account se project link hai to webhook bhi delete hojana chahiye
-//but ham aisa nahi kar rahe hai qki apne system me github events bhejenga agar baki members perform karte hai to
-//and agar wo member link hai to events ki activity bhi create hogi
+//if the owner disconncted himself forom the github we dont want to delete webhook cuz 
+//there are still members who is creation events 
 // export async function unlinkGithubAccount(userId: string) {
 //   const githubAccount = await prisma.githubAccount.findUnique({
 //     where: { userId },

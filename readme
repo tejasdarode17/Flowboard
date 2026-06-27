@@ -1,481 +1,221 @@
-# FlowBoard — Project Summary
+# 🚀 FlowBoard
 
-**Type:** SaaS Project Management Tool (Linear/Notion inspired)  
-**Developer:** Solo full-stack (Tejas)  
-**Status:** Pre-deployment (as of June 2026)
+A full-stack SaaS project management platform inspired by **Linear** and **Notion**, built for teams to manage projects, track issues, and collaborate in real time.
 
----
+🌐 **Live Demo:** https://flowboard.space
 
-## Tech Stack
+--------------------------------------------------------------------------------------------------------------
+
+## ✨ Features
+
+### 🔐 Authentication
+* Email & Password Authentication
+* OTP Email Verification
+* Google OAuth
+* JWT Authentication (HTTP-only Cookies)
+* Refresh Token Rotation
+* Forgot Password
+* Change Password
+* Change Email
+
+### 👥 Workspace Management
+* Create & Manage Workspaces
+* Invite Members via Email
+* Role-Based Access Control (Owner / Admin / Member)
+
+### 📁 Projects
+* Create & Manage Projects
+* Emoji Project Icons
+* GitHub Repository Linking
+
+### 📝 Issue Tracking
+* Create, Update & Assign Issues
+* Priority Levels (Low / Medium / High)
+* Status Management (Todo / In Progress / Done)
+
+### 🔔 Real-time Notifications
+* Live Notifications with Socket.io
+* Unread Notification Count
+* Mark All as Read
+
+### 🔗 GitHub Integration
+* Connect GitHub Account
+* Link Repositories
+* Receive Push & Pull Request Notifications via Webhooks
+
+### 📜 Activity Log
+* Workspace-level Audit Trail
+* Track Important Actions
+
+### 🎨 Theme Support
+* Dark / Light Mode
+* System Preference Support
+
+### 🔑 OTP Flows
+* Signup Verification
+* Forgot Password
+* Change Password
+* Change Email
+
+--------------------------------------------------------------------------------------------------------------
+
+# 🛠 Tech Stack
+
+## Backend
+* Node.js
+* TypeScript
+* Express.js
+* Prisma ORM
+* PostgreSQL (Neon)
+* Redis (Upstash)
+* Socket.io
+* BullMQ
+* JWT Authentication
+* Google OAuth
+* GitHub OAuth
+* Cloudinary
+* Resend
+* Docker & Docker Compose
+
+## Frontend
+* React
+* TypeScript
+* Vite
+* Tailwind CSS v4
+* shadcn/ui
+* Redux Toolkit
+* TanStack Query
+* React Hook Form
+* Zod
+* Axios
+* React Router
+
+--------------------------------------------------------------------------------------------------------------
+
+## Infrastructure
+
+| Service  | Provider        |
+| -------- | --------------- |
+| Frontend | Vercel          |
+| Backend  | Render          |
+| Database | Neon PostgreSQL |
+| Redis    | Upstash         |
+| DNS      | Cloudflare      |
+
+--------------------------------------------------------------------------------------------------------------
+
+# 🏗 Architecture Highlights
+
+## 🔐 Authentication
+* JWT Access Token (15 min)
+* Refresh Token Rotation (7 Days)
+* HTTP-only Secure Cookies
+* Axios Refresh Queue (Prevents Multiple Refresh Requests)
+* Google OAuth (Firebase)
+* GitHub OAuth
+
+## 📧 OTP System (Redis)
+* Layered Redis Architecture
+* Bcrypt Hashed OTP Storage
+* 5 Minute Expiration
+* Maximum 5 Verification Attempts
+* Generic & Type-safe OTP Verification
+
+## ⚡ Real-time Communication
+* Socket.io Authentication using JWT Cookies
+* Personal User Rooms
+* Workspace Rooms
+* Multi-device Support
+* Automatic Reconnection
+
+## 🔔 Notifications
+* Database-backed Notifications
+* Cursor-based Pagination
+* Real-time Updates
+* Infinite Scrolling
+* Optimistic Cache Updates using TanStack Query
+
+## 🔗 GitHub Integration
+* Secure OAuth Flow
+* Repository Linking
+* HMAC-SHA256 Webhook Verification
+* BullMQ Background Processing
+* Pull Request & Push Event Notifications
+
+## 🛡 Permission System
+* Workspace-level RBAC
+* Owner / Admin / Member Roles
+* Backend Authorization Middleware
+* Frontend Permission Helpers
+* Defense-in-depth Security
+
+## 🗄 Database
+* Prisma ORM
+* PostgreSQL
+* Cascade Deletes
+* Composite Unique Constraints
+* Cursor-based Pagination
+
+--------------------------------------------------------------------------------------------------------------
+
+# ⚙ Environment Variables
 
 ### Backend
-| Layer | Technology |
-|-------|-----------|
-| Runtime | Node.js + TypeScript |
-| Framework | Express.js |
-| ORM | Prisma |
-| Database | PostgreSQL |
-| Cache | Redis (ioredis) |
-| Auth | JWT (httpOnly cookies) + Google OAuth (Firebase) + GitHub OAuth |
-| Real-time | Socket.io |
-| Queue | BullMQ |
-| File Storage | Cloudinary |
-| Email | Resend |
-| Infra | Docker + Docker Compose |
+
+```env
+DATABASE_URL=
+REDIS_URL=
+JWT_ACCESS_SECRET=
+JWT_REFRESH_SECRET
+JWT_VERIFY_SECRET=
+CLIENT_URL=
+BACKEND_URL=
+CLOUDINARY_CLOUD_NAME=
+CLOUDINARY_API_KEY=
+CLOUDINARY_API_SECRET=
+RESEND_API_KEY=
+GITHUB_CLIENT_ID=
+GITHUB_CLIENT_SECRET=
+GITHUB_WEBHOOK_SECRET=
+FIREBASE_SERVICE_ACCOUNT=
+```
 
 ### Frontend
-| Layer | Technology |
-|-------|-----------|
-| Framework | React 18 + TypeScript + Vite |
-| Styling | Tailwind CSS v4 + shadcn/ui |
-| State (server) | TanStack Query v5 |
-| State (client) | Redux Toolkit |
-| Forms | React Hook Form + Zod |
-| HTTP | Axios (with interceptor + refresh token queue) |
-| Routing | React Router v6 |
-| Drag & Drop | @dnd-kit/core |
-| Real-time | Socket.io-client |
-| Notifications | Sonner (toast) |
 
----
-
-## Backend Folder Structure
-
-```
-backend/src/
-├── controllers/
-│   ├── auth.controller.ts
-│   ├── workspaces.controller.ts
-│   ├── project.controller.ts
-│   ├── issues.controller.ts
-│   ├── activity.controller.ts
-│   ├── github.controller.ts
-│   ├── notifications.controller.ts
-│   └── user.controller.ts
-│
-├── services/
-│   ├── auth.services.ts
-│   ├── workspace.services.ts
-│   ├── project.services.ts
-│   ├── issue.services.ts
-│   ├── activity.services.ts
-│   ├── github.services.ts
-│   ├── githubEvent.services.ts
-│   ├── notification.services.ts
-│   └── user.services.ts
-│
-├── routes/
-│   ├── auth.routes.ts
-│   ├── workspace.routes.ts
-│   ├── project.routes.ts
-│   ├── issues.routes.ts
-│   ├── activity.routes.ts
-│   ├── github.routes.ts
-│   ├── webhook.routes.ts
-│   ├── notifications.routes.ts
-│   └── user.routes.ts
-│
-├── middlewares/
-│   ├── auth.middleware.ts         — verifyAuth (JWT httpOnly cookie)
-│   ├── workspace.middleware.ts    — requireWorkspaceAccess, requireMemberRole
-│   └── error.middleware.ts        — global error handler (AppError, Zod, Prisma P2002/P2025)
-│
-├── redis/
-│   ├── client.ts                  — ioredis singleton
-│   ├── core/
-│   │   └── cache.ts               — generic setCache/getCache/deleteCache/updateCache
-│   └── otp/
-│       ├── otp.service.ts         — generateOtp, sendSignUpOTP, sendForgetPasswordOTP, verifyOTP<T>
-│       └── otp.keys.ts            — centralized key naming (otp:type:identifier)
-│
-├── lib/
-│   ├── prisma.ts                  — Prisma Client singleton
-│   ├── cloudinary.ts              — Cloudinary config
-│   ├── multer.ts                  — file upload middleware
-│   ├── socket.ts                  — initSocket, getIO, emitToUser, emitToWorkspace
-│   └── queue.ts                   — BullMQ githubQueue + githubWorker
-│
-├── types/
-│   ├── otp.types.ts               — BaseOtpPayload, SignUpOtpPayload, PasswordResetOtpPayload, ChangeEmailOtpPayload
-│   └── express.d.ts               — req.user, req.member, req.workspace type extensions
-│
-├── utils/
-│   ├── AppError.ts                — custom error class
-│   ├── jwt.ts                     — generateAccessToken, verifyAccessToken, GitHub state JWT
-│   └── mailer.ts                  — sendOTPEmail, sendInviteEmail (Resend)
-│
-├── validations/
-│   └── auth.validations.ts        — Zod schemas (register, login, etc.)
-│
-└── app.ts                         — Express app + Socket.io + all routes mounted
+```env
+VITE_BACKEND_URL=
+VITE_SOCKET_URL=
+VITE_FIREBASE_API_KEY=
+VITE_FIREBASE_AUTH_DOMAIN=
+VITE_FIREBASE_PROJECT_ID=
+VITE_FIREBASE_STORAGE_BUCKET=
+VITE_FIREBASE_MESSAGING_SENDER_ID=
+VITE_FIREBASE_APP_ID=
+VITE_FIREBASE_MEASUREMENT_ID=
 ```
 
----
+-----------------------------------------------------------------------------------------------------------
 
-## Frontend Folder Structure
+# 🚀 Local Development
 
-```
-frontend/src/
-├── features/
-│   ├── auth/
-│   │   ├── pages/
-│   │   │   ├── Login.tsx
-│   │   │   ├── Register.tsx
-│   │   │   ├── VerifyAccount.tsx       — OTP verify on signup
-│   │   │   ├── ForgotPassword.tsx      — email input step
-│   │   │   └── ResetPassword.tsx       — OTP + new password step
-│   │   ├── components/
-│   │   │   ├── AuthGuard.tsx           — blocks logged-in users from /auth
-│   │   │   ├── PrivateGuard.tsx        — blocks unauthenticated from /
-│   │   │   └── StrengthBar.tsx         — password strength indicator
-│   │   └── hooks/
-│   │       └── useGoogleLogin.ts
-│   │
-│   ├── workspace/
-│   │   ├── pages/
-│   │   │   ├── Redirect.tsx            — smart redirect to last/first workspace
-│   │   │   ├── CreateWorkspacePage.tsx
-│   │   │   ├── Members.tsx
-│   │   │   └── Invite.tsx              — invite token accept page
-│   │   ├── components/
-│   │   │   ├── CreateWorkspace.tsx
-│   │   │   ├── WorkspaceForm.tsx       — reusable create + edit
-│   │   │   ├── MemberCard.tsx          — member row with permission-based actions
-│   │   │   ├── MemberBadge.tsx         — role badge (OWNER/ADMIN/MEMBER)
-│   │   │   ├── ChangeRole.tsx          — role change dialog
-│   │   │   ├── RemoveMember.tsx        — remove confirm dialog
-│   │   │   └── InviteMember.tsx
-│   │   ├── hooks/
-│   │   │   ├── useWorkspaces.ts
-│   │   │   ├── useWorkspaceDetails.ts
-│   │   │   ├── useMembers.ts
-│   │   │   ├── useWorkspaceCreate.ts
-│   │   │   ├── useWorkspaceUpdate.ts
-│   │   │   ├── useRemoveMember.ts
-│   │   │   └── useUpdateMemberRole.ts
-│   │   └── services/
-│   │       └── workspace.services.ts
-│   │
-│   ├── projects/
-│   │   ├── pages/
-│   │   │   ├── Projects.tsx
-│   │   │   └── ProjectDetails.tsx      — Kanban board
-│   │   ├── components/
-│   │   │   ├── CreateProject.tsx
-│   │   │   ├── ProjectForm.tsx         — reusable create + edit
-│   │   │   └── KanbanColumn.tsx        — droppable column
-│   │   ├── hooks/
-│   │   │   ├── useProjects.ts
-│   │   │   ├── useProjectDetails.ts
-│   │   │   └── useProjectCreate.ts
-│   │   └── services/
-│   │       └── project.services.ts
-│   │
-│   ├── issue/
-│   │   ├── components/
-│   │   │   ├── CreateIssue.tsx
-│   │   │   ├── IssueForm.tsx           — reusable create + edit
-│   │   │   ├── IssueCard.tsx           — draggable card (@dnd-kit)
-│   │   │   └── UpdateIssue.tsx         — Sheet-based edit
-│   │   ├── hooks/
-│   │   │   ├── useIssues.ts
-│   │   │   ├── useIssueCreate.ts
-│   │   │   ├── useIssueUpdate.ts
-│   │   │   ├── useIssueDelete.ts
-│   │   │   └── useIssueStatusUpdate.ts
-│   │   └── services/
-│   │       └── issue.services.ts
-│   │
-│   ├── notifications/
-│   │   ├── Notifications.tsx            — paginated list (Load More)
-│   │   ├── NotificationBell.tsx         — bell icon + unread badge
-│   │   ├── useNotifications.ts          — useInfiniteQuery, cursor-based pagination
-│   │   ├── useRTNotifications.ts        — socket listener + cache update
-│   │   ├── useNotificationAllRead.ts    — mark all read mutation
-│   │   ├── useNotificationUnreadCount.ts — dedicated unread count (staleTime: Infinity)
-│   │   ├── notification.services.ts
-│   │   └── notification.types.ts
-│   │
-│   ├── dashboard/
-│   │   └── pages/
-│   │       └── Dashboard.tsx            — workspace overview + "My Issues" widget
-│   │
-│   ├── activities/
-│   │   └── pages/
-│   │       └── Activities.tsx
-│   │
-│   ├── settings/
-│   │   └── pages/
-│   │       └── Settings.tsx             — GitHub connect + workspace settings
-│   │
-│   └── profile/
-│       ├── pages/
-│       │   ├── UserProfile.tsx
-│       │   └── EditProfile.tsx          — name, username, mobile, avatar
-│       ├── hooks/
-│       │   └── useUserProfile.ts
-│       └── services/
-│           └── profile.services.ts
-│
-├── layout/
-│   ├── AuthLayout.tsx                   — centered auth wrapper
-│   ├── MainLayout.tsx                   — sidebar + outlet (eager loaded)
-│   └── WorkspaceLayout.tsx              — socket join + RT notifications + slug validation
-│
-├── shared/
-│   ├── components/
-│   │   ├── Sidebar.tsx                  — workspace switcher + nav + bell icon + user section
-│   │   ├── OnboardingSidebar.tsx        — shown when 0 workspaces
-│   │   ├── MainLoder.tsx                — full-page loader (Suspense fallback)
-│   │   ├── DarkMode.tsx
-│   │   └── ErrorMessage.tsx
-│   ├── hooks/
-│   │   ├── useAppSelector.ts
-│   │   ├── useAppDispatch.ts
-│   │   ├── useCurrentWorkspace.ts       — role, isOwner, isAdmin, isOwnerOrAdmin, isMember
-│   │   └── useTheme.ts
-│   ├── icons/
-│   │   ├── FlowBoardLogo.tsx
-│   │   └── GoogleIcon.tsx
-│   ├── lib/
-│   │   └── socket.ts                    — connectSocket, getSocket, disconnectSocket (singleton)
-│   ├── pages/
-│   │   └── NotFound.tsx
-│   └── utils/
-│       └── errorHandler.ts             — apiErrors, zodErrors, setFormErrors
-│
-├── redux/
-│   ├── store.ts
-│   └── authSlice.ts                    — checkAuth thunk, setUser, clearUser
-│
-├── api/
-│   └── axiosInstance.ts               — axios + 401 interceptor + refresh token queue
-│
-└── App.tsx                            — lazy routes + QueryClient + checkAuth
-```
+## Prerequisites
+* Node.js 20+
+* Docker & Docker Compose
+* GitHub OAuth App
+* Firebase Project
+* Cloudinary Account
+* Resend Account
 
----
+## Setup
 
-## Prisma Schema — Models
+```bash
+git clone https://github.com/tejasdarode17/Flowboard.git
 
-```
-User          — id, name, username, email, password?, mobile?, avatar?, provider (local/google)
-Workspace     — id, name, slug (unique), description?, logo?
-Member        — userId + workspaceId (unique pair), role (OWNER/ADMIN/MEMBER)
-Project       — workspaceId, name, slug, emoji?
-Issue         — projectId, title, status (TODO/IN_PROGRESS/DONE), priority (Low/Medium/High),
-                assignedTo (Member?), createdBy (Member?)
-WorkspaceInvite — email, token (unique), role, expiresAt, accepted
-GithubAccount   — userId (unique), accessToken, githubId, username
-ProjectGithub   — projectId (unique), repoFullName, repoId, webhookId?
-Activity      — workspaceId, actorId (Member?, onDelete: SetNull), action (enum), metadata JSON
-Notification  — memberId (Member?, onDelete: SetNull), workspaceId, projectId?, title, message,
-                type (enum), read (default false)
-```
+cd Flowboard
 
----
+cp backend/.env.example backend/.env
 
-## Completed Features — Detailed
+docker compose up --build
 
-### 1. Authentication
-- **Register** — Zod validation, OTP sent via Resend email, user created after OTP verify
-- **Login** — email/password, bcrypt compare, JWT access + refresh tokens (httpOnly cookies)
-- **Google OAuth** — Firebase popup, ID token verify backend, create/login user
-- **JWT** — access token (15min), refresh token (7d), auto-refresh via Axios interceptor (queue-based, no duplicate refresh calls)
-- **Logout** — cookie clear
-- **Session restore** — `checkAuth()` Redux thunk on app load + login + register
-- **Forgot Password** — email input → OTP to email → OTP + new password → reset (public route)
-- **Change Password** — authenticated → OTP sent to registered email → same reset endpoint
-- **Change Email** — OTP sent to new email → verify OTP → email updated
-- **AuthGuard** — blocks logged-in users from /auth routes
-- **PrivateGuard** — blocks unauthenticated users from / routes
+----------------------------------------------------------------------------------------------------------------------
 
-### 2. Redis / OTP System
-- **Layered architecture:**
-  - `redis/client.ts` — ioredis connection singleton
-  - `redis/core/cache.ts` — generic `setCache/getCache/deleteCache/updateCache` (TTL-aware)
-  - `redis/otp/otp.service.ts` — domain-specific OTP logic built on generic cache layer
-  - `redis/otp/otp.keys.ts` — centralized key naming (`otp:signup:email`, `otp:reset-password:email`, `otp:change-email:userId`)
-- **Type-safe payloads:**
-  - `BaseOtpPayload` (`otpHash`, `attempts`)
-  - `SignUpOtpPayload` extends Base (name, email, username, passwordHash, mobile?)
-  - `PasswordResetOtpPayload` extends Base (email)
-  - `ChangeEmailOtpPayload` extends Base (userId, newEmail)
-- **Generic `verifyOTP<T extends BaseOtpPayload>`** — attempts tracking (max 5), bcrypt compare, auto-delete on success/max-attempts
-- **TTL: 300 seconds (5 min)** on all OTPs
-- **Rate limiting** — OTP already sent check before resend
-
-### 3. Workspace Management
-- **CRUD** — create, read, update (name, description, logo via Cloudinary)
-- **Slug generation** — auto-generated from name via `slugify`, unique constraint, P2002 handled with friendly message
-- **Logo upload** — Cloudinary (multer middleware), old logo deleted on update
-- **Cascade delete** — workspace delete cascades to members, projects, issues, activities, notifications, invites
-- **Workspace switcher** — sidebar dropdown, `localStorage.setItem("lastWorkspace")` persisted
-
-### 4. Invite System
-- **Send invite** — email, role (ADMIN/MEMBER), 48hr expiry token (crypto), duplicate invite guard (excludes expired)
-- **Email** — Resend with invite link
-- **Validate token** — public endpoint, returns invite details
-- **Accept invite** — verifies token, checks email match, creates Member, marks invite accepted, creates Activity + Notification
-- **Invite page (`/invite/:token`)** — 3 cases handled:
-  - Already logged in with correct account → accept directly
-  - Logged in with wrong account → switch account option
-  - Not logged in → redirect to register/login with token preserved in URL query param
-
-### 5. Member Management
-- **List members** — with user details
-- **Remove member** — role-based permissions (OWNER can remove all, ADMIN can remove MEMBER only), FK constraint fix (`Activity.actorId onDelete: SetNull`, `Issue.assignedTo/createdBy onDelete: SetNull`, `Notification.memberId onDelete: SetNull`)
-- **Change role** — only OWNER can change roles, OWNER role cannot be modified
-- **Permission-based UI** — `useCurrentWorkspace` hook exposes `isOwner`, `isAdmin`, `isOwnerOrAdmin`, `isMember` booleans from cached workspace data (no extra API call)
-
-### 6. Projects
-- **CRUD** — create (OWNER/ADMIN only), read, update, delete (cascade to issues, activities, notifications, ProjectGithub)
-- **Emoji picker** — project emoji/icon
-- **Per-workspace** — scoped by workspaceSlug
-
-### 7. Issues / Kanban Board
-- **CRUD** — create, read, update, delete (OWNER/ADMIN only for delete)
-- **Kanban** — drag-and-drop via `@dnd-kit/core` (`DndContext`, `useDraggable`/`useDroppable`)
-- **Columns** — TODO / IN_PROGRESS / DONE
-- **Priority** — Low / Medium / High
-- **Assignee** — from workspace members
-- **Status update** — drag triggers `PATCH` API
-- **Reusable `IssueForm`** — same component for create + edit via `defaultValues` + `submitLabel` props
-- **Sheet-based edit** — `UpdateIssue.tsx` uses shadcn Sheet
-- **"My Issues"** — dashboard widget showing issues assigned to current user
-
-### 8. GitHub Integration
-- **OAuth App** — Client ID/Secret stored in `.env`
-- **Connect flow** — `/github/:workspaceSlug/connect` → GitHub auth URL (JWT-signed `state`) → callback → exchange code for token → store in `GithubAccount`
-- **Repo listing** — fetch user repos from GitHub API
-- **Link repo to project** — creates `ProjectGithub`, registers webhook on GitHub via API
-- **Unlink repo** — deletes webhook from GitHub + `ProjectGithub` record
-- **Unlink account** — deletes `GithubAccount`
-- **Webhook receiver** — mounted BEFORE `express.json()` using `express.raw()` for signature verification, HMAC-SHA256 signature check
-- **BullMQ queue** — webhook events pushed to `githubQueue` → `githubWorker` processes
-- **Events handled** — PR opened, PR merged, Push → creates Notification records + `emitToWorkspace`
-
-### 9. Socket.io (Real-time)
-- **Backend (`lib/socket.ts`):**
-  - `initSocket(httpServer)` — called once at startup
-  - **Auth middleware** — reads JWT from httpOnly cookie (`cookie.parse(socket.handshake.headers.cookie)`)
-  - **Personal room** — `user:{userId}` (multi-device support)
-  - **Workspace room** — `workspace:{workspaceId}` (auto-leave previous on switch)
-  - **Member access check** — `join:workspace` verifies membership before joining room
-  - `emitToUser(userId, event, data)` — personal notification
-  - `emitToWorkspace(workspaceId, event, data)` — broadcast to workspace
-  - `getIO()` — global access for services/webhooks
-- **Frontend (`shared/lib/socket.ts`):**
-  - Singleton pattern — `connectSocket()` creates-or-returns, `disconnectSocket()` tears down
-  - `autoConnect: true`, `transports: ["websocket"]`, reconnection (5 attempts, 1s delay)
-  - `WorkspaceLayout` — single place that calls `connectSocket()` + `socket.emit("join:workspace")` + registers RT listener
-
-### 10. Notifications
-- **DB storage** — `Notification` model, cursor-based pagination (limit 20)
-- **`useNotifications`** — `useInfiniteQuery`, cursor pagination, "Load More" button
-- **`useRTNotifications`** — socket `notification:new` listener, updates first page of infinite query cache via `queryClient.setQueryData<InfiniteData<NotificationResponse>>`
-- **Unread count** — separate dedicated `useQuery` (`staleTime: Infinity`, `refetchOnWindowFocus: false`) — NOT derived from paginated list (accurate count regardless of pages loaded)
-- **Mark all read** — `PATCH` API, updates only unread-count cache (not full list)
-- **Bell icon** — in sidebar header (industry-standard placement), shows red badge with count (9+ capped)
-- **Notifications page** — paginated list, unread items highlighted, timestamps
-
-### 11. Activity Log
-- **Workspace-level audit trail** — every major action recorded
-- **Actions tracked** — WORKSPACE_UPDATED, PROJECT_CREATED/UPDATED/DELETED, ISSUE_CREATED/UPDATED/DELETED/STATUS_CHANGED/PRIORITY_CHANGED/ASSIGNED, MEMBER_JOINED/REMOVED/ROLE_CHANGED, PR_OPENED/MERGED/CLOSED, PUSH, etc.
-- **Actor preserved in metadata** — even after member delete (SetNull on actorId, but name/details in metadata JSON)
-- **Recent activities** — dashboard widget
-
-### 12. User Profile
-- **View profile** — `GET /api/users/:username`
-- **Edit profile** — name, username, mobile, avatar (Cloudinary upload, old avatar deleted)
-- **Change email** — OTP-based (OTP sent to new email, verified, then updated)
-- **Change password** — OTP-based (authenticated flow)
-
-### 13. Routing Architecture
-- **`createBrowserRouter`** with `future: { v7_startTransition: true }` — fixes navigation freeze/blank-UI during lazy chunk download
-- **Lazy loading** — all pages lazy via `React.lazy()` + per-route `<Suspense fallback={<MainLoder/>}>` via `withSuspense` helper; layouts eager
-- **Guard pattern** — `AuthGuard` (blocks /auth for logged-in), `PrivateGuard` (blocks / for unauthenticated)
-- **`WorkspaceLayout`** — validates slug against workspace list, redirects to `/` if invalid slug (with toast), persists valid slug to `localStorage`
-- **`Redirect`** — smart redirect using `lastWorkspace` localStorage, falls back to first workspace, sets localStorage
-- **Profile routes** — top-level (not workspace-scoped), accessible even with 0 workspaces
-
-### 14. TanStack Query Architecture
-- **Global defaults** — `staleTime: 60000`, `refetchOnWindowFocus: false` in `QueryClient` constructor
-- **Per-hook overrides** — `staleTime: Infinity` for socket-driven data (notifications, unread count)
-- **Deduplication** — same `queryKey` = single network request even if hook called from 4 components simultaneously
-- **Cache invalidation** — `invalidateQueries` on mutations (create/update/delete)
-- **Optimistic updates** — notification cache updated immediately on socket event (no refetch needed)
-- **Infinite query** — notifications use `useInfiniteQuery` with cursor-based pagination
-
-### 15. Error Handling
-- **`AppError`** — custom class with `statusCode`
-- **Global `errorMiddleware`** — handles `AppError`, `ZodError`, `PrismaClientKnownRequestError` (P2002 duplicate with field-specific messages, P2025 not found)
-- **Frontend `setFormErrors`** — bridges axios errors + Zod errors into React Hook Form `setError`
-- **Axios interceptor** — 401 → queue requests → refresh token → retry; if refresh fails → logout
-
----
-
-## Key Architectural Decisions
-
-| Decision | Choice | Reason |
-|----------|--------|--------|
-| OTP storage | Redis (not DB) | Temporary data, TTL auto-expire, no cleanup needed |
-| OTP security | bcrypt hash | Plain text OTP never stored |
-| Socket auth | httpOnly cookie | Token not accessible via JS, more secure |
-| Notification unread count | Separate query | Paginated list gives inaccurate count |
-| `socket.to()` vs `io.to()` | `io.to()` everywhere | No client-initiated broadcasts in current scope |
-| Invite token storage | URL query param | Persists across tab close/refresh, no cleanup needed |
-| Profile routes | Top-level (not workspace-scoped) | User can have 0 workspaces |
-| Form pattern | `mutateAsync` (not `mutate`) | RHF `isSubmitting` tracks correctly |
-| Permission check | Frontend UI hide + Backend middleware | Defense in depth |
-| `Activity.actorId` | `onDelete: SetNull` | Preserve audit history even after member removal |
-
----
-
-## Pending / Remaining Tasks
-
-```
-Frontend:
-☐ OTP verify page complete wiring (signup flow)
-☐ Forgot/Reset password pages complete wiring
-☐ Edit profile complete wiring
-☐ Delete issue UI
-☐ Delete workspace UI
-☐ Delete project UI
-
-BullMQ:
-☐ Apply queue to email sending (currently synchronous)
-☐ Apply queue to notification creation (currently synchronous)
-
-Deploy:
-☐ Backend: Railway/Render
-☐ Frontend: Vercel
-☐ Redis: Railway Redis
-☐ PostgreSQL: Railway Postgres
-☐ Environment variables production
-☐ CORS production URLs
-☐ GitHub OAuth callback URL update
-☐ Webhook URL (ngrok → real URL)
-☐ End-to-end production test
-```
-
----
-
-## Bugs Fixed During Development
-
-| Bug | Fix |
-|-----|-----|
-| `mutate` vs `mutateAsync` — RHF `isSubmitting` not tracking | Use `mutateAsync` everywhere |
-| `otpKeys.signup` used instead of `otpKeys.resetPassword` in verify | Corrected key |
-| `setCache` storing bare string instead of full payload object | Store full `{email, otpHash, attempts}` |
-| `Activity_actorId_fkey` FK violation on member delete | `onDelete: SetNull` + migration |
-| `Issue.assignedTo/createdBy` FK violation on member delete | `onDelete: SetNull` + nullable fields |
-| `Notification.memberId` FK violation on member delete | `onDelete: SetNull` |
-| Prisma Client stale after schema change | `prisma generate` + container restart |
-| `isOwnerOrAdmin` inverted logic (`MEMBER \|\| ADMIN`) | Corrected to `OWNER \|\| ADMIN` |
-| Socket `handshake.auth.token` incompatible with httpOnly cookies | Parse cookies from `handshake.headers.cookie` |
-| `useNotificationUnreadCount` spurious refetch on tab switch | `staleTime: Infinity` + `refetchOnWindowFocus: false` |
-| `WorkspaceLayout.localStorage.setItem` on invalid slug | Only set when `workspaceSlug && workspace` both valid |
-| Navigation freeze during lazy chunk download | `v7_startTransition: true` on `createBrowserRouter` |
-| `workspaces.find()` operator precedence bug | `ws.slug === (workspaceSlug ?? lastSlug)` |
-| `MemberCard` OWNER seeing own action menu | `!isCurrentUser && isOwnerOrAdmin` (proper parentheses) |

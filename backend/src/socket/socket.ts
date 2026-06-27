@@ -10,7 +10,6 @@ let io: Server;
 
 export const initSocket = (httpServer: HttpServer) => {
 
-
     io = new Server(httpServer, {
         cors: {
             origin: process.env.CLIENT_URL,
@@ -44,9 +43,8 @@ export const initSocket = (httpServer: HttpServer) => {
         socket.join(`user:${socket.data.userId}`);
         workspaceSocket(io, socket)
 
-
         //if we remove this line still socket will disconneted. 
-        // this is for doing extra activities if soccket is deletd
+        // this is for doing extra activities if socket is deletd
         //like clearing the redis and all 
         socket.on("disconnect", () => {
             console.log(`Socket disconnected: ${socket.id}`);

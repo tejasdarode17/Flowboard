@@ -1,5 +1,6 @@
 {
   "compilerOptions": {
+    
     "tsBuildInfoFile": "./node_modules/.tmp/tsconfig.app.tsbuildinfo",
     "target": "ES2022",
     "useDefineForClassFields": true,
@@ -7,10 +8,11 @@
     "module": "ESNext",
     "types": ["vite/client"],
     "skipLibCheck": true,
+
     /* Bundler mode */
     "moduleResolution": "bundler",
     "allowImportingTsExtensions": true,
-    "verbatimModuleSyntax": true, //this make sure you nmention type import
+    "verbatimModuleSyntax": true, //this make sure you mention type import
     "moduleDetection": "force",
     "noEmit": true,
     "jsx": "react-jsx",
@@ -31,3 +33,5 @@
   },
   "include": ["src"]
 }
+
+

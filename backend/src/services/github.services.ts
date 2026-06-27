@@ -8,7 +8,7 @@ import { extractGithubUsername } from "../utils/githubUtils";
 import { createActivity } from "./activites.services";
 import { createNotification } from "./notification.services";
 import { ActivityAction } from "@prisma/client";
-import { emitToWorkspace } from "../socket/socket";
+import { emitToWorkspace } from "../socket/socket";  
 
 export function getGithubAuthUrl(state: string) {
     const params = new URLSearchParams({

@@ -161,30 +161,45 @@ Note: The backend is hosted on Render's free tier and may take around 30–60 se
 # ⚙ Environment Variables
 
 ### Backend
+PORT=
 
-```env
+POSTGRES_USER=
+POSTGRES_PASSWORD=
+POSTGRES_DB=
+PGADMIN_DEFAULT_EMAIL=
+PGADMIN_DEFAULT_PASSWORD=
 DATABASE_URL=
+
 REDIS_URL=
+
 JWT_ACCESS_SECRET=
 JWT_REFRESH_SECRET
 JWT_VERIFY_SECRET=
+
 CLIENT_URL=
 BACKEND_URL=
+
+NODE_ENV=
+
+FIREBASE_SERVICE_ACCOUNT=
+
 CLOUDINARY_CLOUD_NAME=
 CLOUDINARY_API_KEY=
 CLOUDINARY_API_SECRET=
+
 RESEND_API_KEY=
+
 GITHUB_CLIENT_ID=
 GITHUB_CLIENT_SECRET=
 GITHUB_WEBHOOK_SECRET=
-FIREBASE_SERVICE_ACCOUNT=
-```
+
+<!-- this route exist in github.routes.ts --> 
+GITHUB_CALLBACK_URL= domain//api/github/callback
 
 ### Frontend
-
-```env
 VITE_BACKEND_URL=
 VITE_SOCKET_URL=
+
 VITE_FIREBASE_API_KEY=
 VITE_FIREBASE_AUTH_DOMAIN=
 VITE_FIREBASE_PROJECT_ID=
@@ -192,8 +207,11 @@ VITE_FIREBASE_STORAGE_BUCKET=
 VITE_FIREBASE_MESSAGING_SENDER_ID=
 VITE_FIREBASE_APP_ID=
 VITE_FIREBASE_MEASUREMENT_ID=
-```
 
+-----------------------------------------------------------------------------------------------------------
+# Note
+> - Configure all the environment variables listed above before running the project.
+> - For local GitHub webhook testing, install `cloudflared` and create a Cloudflare Tunnel to expose your local server.
 -----------------------------------------------------------------------------------------------------------
 
 # 🚀 Local Development
@@ -212,8 +230,6 @@ VITE_FIREBASE_MEASUREMENT_ID=
 git clone https://github.com/tejasdarode17/Flowboard.git
 
 cd Flowboard
-
-cp backend/.env.example backend/.env
 
 docker compose up --build
 

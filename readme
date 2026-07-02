@@ -3,7 +3,7 @@
 A full-stack SaaS project management platform inspired by **Linear** and **Notion**, built for teams to manage projects, track issues, and collaborate in real time.
 
 🌐 **Live Demo:** https://flowboard.space
-
+Note: The backend is hosted on Render's free tier and may take around 30–60 seconds to wake up after inactivity.
 --------------------------------------------------------------------------------------------------------------
 
 ## ✨ Features

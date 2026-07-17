@@ -19,7 +19,6 @@ import { initSocket } from './socket/socket';
 
 dotenv.config();
 
-
 const app = express();
 const httpServer = http.createServer(app)
 

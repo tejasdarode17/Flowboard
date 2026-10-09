@@ -56,8 +56,12 @@ export async function createIssue(data: issueInput, projectId: string, actorId: 
     if (data.assignedTo && data.assignedTo !== actorId) {
 
         try {
-            const [creator, assignee] = await Promise.all([
 
+            //for the performance you used promise.all here we can fetched simply too but it would take more time 
+            //now with promise.all both the queries will fire at same time and whoever takes the maximum time that time will be our final time 
+            //without this two individual querires can take their own timm if first is taking x and 2nd 2x then total time will be 3x
+            //but with promise.all it will me 2x only 
+            const [creator, assignee] = await Promise.all([
                 // creator means loggedin user jo crete kar rahh hai issue actor
                 //assignee mean jisko bhejna hai ye jisko assigenhua hai 
 

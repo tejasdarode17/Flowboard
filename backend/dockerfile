@@ -11,9 +11,10 @@ COPY prisma ./prisma
 
 RUN npx prisma generate
 
-# //local
-# CMD ["npm", "run", "dev"]
+# local
+CMD ["npm", "run", "dev"]
 
 # prod
-RUN npm run build
-CMD ["npm", "start"]
+# RUN npm run build
+# CMD ["npm", "start"]
+    

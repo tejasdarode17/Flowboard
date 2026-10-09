@@ -45,7 +45,7 @@ export const initSocket = (httpServer: HttpServer) => {
 
         //if we remove this line still socket will disconneted. 
         // this is for doing extra activities if socket is deletd
-        //like clearing the redis and all 
+        //like clearing the redis adapter and all 
         socket.on("disconnect", () => {
             console.log(`Socket disconnected: ${socket.id}`);
         });

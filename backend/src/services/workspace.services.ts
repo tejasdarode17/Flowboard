@@ -348,6 +348,7 @@ export async function acceptWorkspaceInvite(token: string, userId: string) {
     });
 
     await Promise.all(
+      //map execute hoke array hoga promises ka matlab db calling funcitons ka 
       members.map((m) =>
         createNotification({
           memberId: m.id,

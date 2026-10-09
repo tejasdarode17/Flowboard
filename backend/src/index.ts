@@ -1,5 +1,5 @@
 import './globals'
-import express from "express";
+import express, { Request, Response } from "express";
 import http from "http"
 import dotenv from "dotenv";
 import cors from "cors";
@@ -22,7 +22,7 @@ dotenv.config();
 const app = express();
 const httpServer = http.createServer(app)
 
-const PORT = process.env.PORT || 8000;
+const PORT = process.env.PORT
 
 app.set('trust proxy', 1);
 
@@ -36,6 +36,11 @@ app.use(
 );
 
 app.use(cookieParser());
+
+app.get("/", (req: Request, res: Response) => {
+  res.send("Hello")
+})
+
 
 // GitHub webhook needs the raw request body for signature verification,
 // so this route is mounted before express.json().

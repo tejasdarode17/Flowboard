@@ -4,6 +4,9 @@ import { checkAuth } from "./redux/authSlice";
 import { useAppDispatch } from "./shared/hooks/useAppDispatch";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 
+//docker file backend ki dkehle push karne se payle 
+//npm run start karna hai production me npm run dev local ke liye hai 
+
 import AuthGuard from "./features/auth/components/AuthGuard";
 import PrivateGuard from "./features/auth/components/PrivateGuard";
 

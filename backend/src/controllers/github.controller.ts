@@ -139,8 +139,7 @@ export async function unlinkRepositoryController(req: Request, res: Response) {
 
 export async function githubWebhookController(req: Request, res: Response, next: NextFunction) {
     try {
-        const signature =
-            req.headers["x-hub-signature-256"];
+        const signature = req.headers["x-hub-signature-256"];
 
         if (!signature || Array.isArray(signature)) {
             return next(new AppError("Missing webhook signature", 401));

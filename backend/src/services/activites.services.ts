@@ -22,7 +22,7 @@ export async function getActivities(workspaceId: string, filters: ActivityFilter
         start.setHours(0, 0, 0, 0);
 
         dateFilter = {
-            gte: start,
+            gte: start, 
         };
     }
 
@@ -93,7 +93,7 @@ export async function getActivities(workspaceId: string, filters: ActivityFilter
     return {
         activities: items,
         nextCursor,
-        hasMore,
+        hasMore,    
     };
 }
 

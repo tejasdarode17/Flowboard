@@ -37,7 +37,7 @@ export const getSocket = () => {
 
 
 //socket.io disconnect automatically if user left no need to do any thing on client side or server side
-//if we want to explecitly disconnet then this function will be useed  
+//if we want to explecitly disconnet then this function will be used  
 export const disconnectSocket = () => {
     if (socket) {
         socket.disconnect();

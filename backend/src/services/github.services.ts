@@ -8,7 +8,7 @@ import { extractGithubUsername } from "../utils/githubUtils";
 import { createActivity } from "./activites.services";
 import { createNotification } from "./notification.services";
 import { ActivityAction } from "@prisma/client";
-import { emitToWorkspace } from "../socket/socket";  
+import { emitToWorkspace } from "../socket/socket";
 
 export function getGithubAuthUrl(state: string) {
     const params = new URLSearchParams({
@@ -375,6 +375,7 @@ export async function processGitHubWebhook(event: GithubEvent, payload: GithubWe
                 });
 
                 await Promise.all(
+                    //inner map execute hoke [] dega. us array ke andar promises honge means db call functions
                     members.map((m) =>
                         createNotification({
                             memberId: m.id,
@@ -424,10 +425,7 @@ export async function processGitHubWebhook(event: GithubEvent, payload: GithubWe
                 })
 
             } catch (error) {
-                console.error(
-                    "Failed to create PR notifications",
-                    error
-                );
+                console.error("Failed to create PR notifications", error);
             }
         }
 
@@ -437,9 +435,8 @@ export async function processGitHubWebhook(event: GithubEvent, payload: GithubWe
 
 
 
-
-//if the owner disconncted himself forom the github we dont want to delete webhook cuz 
-//there are still members who is creation events 
+//if the owner disconncted himself forom the github we dont want to delete webhook cuz
+//there are still members who is creation events
 // export async function unlinkGithubAccount(userId: string) {
 //   const githubAccount = await prisma.githubAccount.findUnique({
 //     where: { userId },

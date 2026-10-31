@@ -16,6 +16,7 @@ import notificationsRoutes from './routes/notifications.routes'
 import errorMiddleware from "./middlewares/error.middleware";
 import cloudinaryConfig from './lib/cloudinary';
 import { initSocket } from './socket/socket';
+import { globalRateLimit } from './middlewares/rate_limit_middlewares/global_rate_limit.middleware';
 
 dotenv.config();
 
@@ -48,6 +49,8 @@ app.use("/api/github", webhooksRoutes)
 
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
+
+app.use(globalRateLimit)
 
 app.use("/api/auth", authRoutes);
 app.use("/api/workspace", workspaceRoutes)

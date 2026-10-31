@@ -64,7 +64,8 @@ export async function validateUserController(req: Request, res: Response, next: 
 export async function login(req: Request, res: Response, next: NextFunction) {
   try {
     const body = loginSchema.parse(req.body);
-    const data = await loginUser(body);
+    const ip = req.ip ?? "unknown"
+    const data = await loginUser(body, ip);
     const { user, accessToken, refreshToken } = data;
 
     res.cookie("accessToken", accessToken, {
@@ -260,16 +261,18 @@ export async function changePasswordOtpController(req: Request, res: Response, n
   }
 }
 
+
 export async function verifyOtpForPasswordCntroller(req: Request, res: Response, next: NextFunction) {
   try {
     const data = verifyOtpSchema.parse(req.body)
-
     const result = await verifyResetPasswordOtp(data)
 
     return res.status(200).json({
       success: true,
-      message: result.message
+      message: result.message,
+      resetToken: result.resetToken
     });
+
   } catch (error) {
     next(error)
   }
@@ -291,6 +294,7 @@ export async function resetPasswordController(req: Request, res: Response, next:
     next(error);
   }
 }
+
 
 export const changeEmailController = async (req: Request, res: Response, next: NextFunction) => {
   try {
@@ -315,9 +319,12 @@ export const changeEmailController = async (req: Request, res: Response, next: N
 
 export const verifyChangeEmailController = async (req: Request, res: Response, next: NextFunction) => {
   try {
+    const userId = req.user?.userId
+    if (!userId) throw new AppError("Unauthorized", 401);
+
     const data = verifyEmailSchema.parse(req.body)
 
-    const result = await verifyEmail(data);
+    const result = await verifyEmail(data, userId);
 
     res.status(200).json({
       success: true,

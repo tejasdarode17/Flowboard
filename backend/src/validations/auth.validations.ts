@@ -16,7 +16,7 @@ export const registrationSchema = z.object({
 
   email: z.string().trim().toLowerCase().email({ message: "Invalid Email" }),
   mobile: z.string().trim().optional(),
-  password: z.string().min(6, "Password must be at least 6 characters"),
+  password: z.string().min(8, "Password must be at least 8 characters"),
 });
 
 
@@ -26,8 +26,8 @@ export const loginSchema = z.object({
     .trim()
     .toLowerCase()
     .min(3, "Email or username required")
-    .max(30, "Input too long"),
-  password: z.string().min(6, { message: "Password is required" }),
+    .max(254, "Input too long"),
+  password: z.string().min(8, { message: "Password is required" }),
 })
 
 
@@ -67,6 +67,7 @@ export const verifyOtpSchema = z.object({
 
 export const resetPasswordSchema = z.object({
   email: emailField,
+  resetToken: z.string().min(1, "Reset token is required").max(128),
   password: z.string().min(8, "Password must be at least 8 characters"),
 });
 

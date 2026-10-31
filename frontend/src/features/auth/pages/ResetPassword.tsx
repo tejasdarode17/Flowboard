@@ -5,7 +5,7 @@ import ErrorMessage from "@/shared/components/ErrorMessage";
 import { apiErrors, zodErrors } from "@/shared/utils/errorHandler";
 import { Loader2, Eye, EyeOff } from "lucide-react";
 import { useState, type FormEvent } from "react";
-import { Navigate, useNavigate, useSearchParams } from "react-router-dom";
+import { Navigate, useLocation, useNavigate, useSearchParams } from "react-router-dom";
 import { toast } from "sonner";
 import { inviteToken } from "@/shared/utils/inviteToken";
 import { passwordSchema } from "../validations/auth.validations";
@@ -17,16 +17,19 @@ const ResetPassword = () => {
   const [loading, setLoading] = useState(false);
   const [errors, setErrors] = useState<Record<string, string>>({});
 
+  const location = useLocation();
+  const resetTokenFromServer = location.state.resetToken as string;
+
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
 
   const email = searchParams.get("email");
   const token = inviteToken.get();
 
-  if (!email) {
+  if (!email || !resetTokenFromServer) {
     return <Navigate to="/" replace />;
   }
-  
+
   async function handleSubmit(e: FormEvent) {
     try {
       e.preventDefault();
@@ -37,8 +40,7 @@ const ResetPassword = () => {
         setErrors(zodErrors(result));
         return;
       }
-
-      await api.post("/api/auth/reset-password", { email, password: newPassword });
+      await api.post("/api/auth/reset-password", { email, password: newPassword, resetToken: resetTokenFromServer });
       toast.success("Password has been changed successfully");
       navigate(token ? `/invite/${token}` : "/");
     } catch (error) {

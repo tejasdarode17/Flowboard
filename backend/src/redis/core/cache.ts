@@ -1,23 +1,24 @@
 import redis from "../client";
 
+
+
 export async function setCache(key: string, value: unknown, ttl?: number) {
+    const data = JSON.stringify(value);
     if (ttl) {
-        await redis.set(
-            key,
-            JSON.stringify(value),
-            "EX",
-            ttl
-        );
+        await redis.set(key, data, "EX", ttl);
     } else {
-        await redis.set(key, JSON.stringify(value));
+        await redis.set(key, data);
     }
 }
-
 
 export async function getCache<T>(key: string): Promise<T | null> {
     const data = await redis.get(key);
     if (!data) return null;
-    return JSON.parse(data) as T;
+    try {
+        return JSON.parse(data) as T;
+    } catch {
+        return null;
+    }
 }
 
 

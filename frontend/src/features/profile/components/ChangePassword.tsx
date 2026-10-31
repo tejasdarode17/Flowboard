@@ -25,7 +25,8 @@ const ChangePassword = ({ children }: Props) => {
   const [otp, setOtp] = useState("");
   const [newPassword, setNewPassword] = useState("");
   const [errors, setErrors] = useState<Record<string, string>>({});
-  // const
+  const [resetTokenFromServer, setResetTokenFromServer] = useState<string>("");
+
 
   const resetState = () => {
     setStep("send-otp");
@@ -72,6 +73,7 @@ const ChangePassword = ({ children }: Props) => {
         otp,
       });
       if (response?.data?.success) {
+        setResetTokenFromServer(response?.data?.resetToken);
         setStep("new-password");
       }
     } catch (error) {
@@ -96,6 +98,7 @@ const ChangePassword = ({ children }: Props) => {
       await api.post("/api/auth/reset-password", {
         email: userData?.email,
         password: newPassword,
+        resetToken: resetTokenFromServer,
       });
       toast.success("Password has been changed successfully");
       setOpen(false);

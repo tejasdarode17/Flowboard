@@ -26,8 +26,12 @@ const VerifyPasswordOtp = () => {
 
     try {
       setLoading(true);
-      await api.post("/api/auth/verify-password/otp", { email, otp });
-      navigate(`/auth/reset-password?email=${encodeURIComponent(email!)}`);
+      const response = await api.post("/api/auth/verify-password/otp", { email, otp });
+      navigate(`/auth/reset-password?email=${encodeURIComponent(email!)}`, {
+        state: {
+          resetToken: response.data.resetToken,
+        },
+      });
     } catch (error) {
       setErrors(apiErrors(error));
       setOtp("");

@@ -10,6 +10,10 @@ import { Prisma } from '@prisma/client';
 import { GoogleTokenPayload } from '../types/googleTokenPayload';
 import { sendChangeEmailOtp, sendForgetPasswordOTP, sendSignUpOTP, verifyOTP } from '../redis/otp/otp.service';
 import { otpKeys } from '../redis/core/keys/otp.keys';
+import { rateLimitKeys } from '../redis/core/keys/rateLimit.keys';
+import { getRateLimitCount, incrementRateLimit, resetRateLimit } from '../redis/rate_limit/rateLimit.config';
+import { createHash, randomBytes } from 'node:crypto';
+import { deleteCache, getCache, setCache } from '../redis/core/cache';
 
 export async function registerUser(data: RegisterInput) {
   const existingEmail = await prisma.user.findUnique({
@@ -57,22 +61,33 @@ export async function validateUserSignup(email: string, otp: string) {
 }
 
 
-export async function loginUser(data: LoginInput) {
+export async function loginUser(data: LoginInput, ip: string) {
+
+  const identifier = data.emailOrUsername
+
+  const DUMMY_HASH = await bcrypt.hash("dummy-password-not-a-real-account", 10)
 
   const user = await prisma.user.findFirst({
     where: {
-      OR: [{ email: data?.emailOrUsername }, { username: data?.emailOrUsername }],
+      OR: [{ email: identifier }, { username: identifier }],
     },
   });
 
-  if (!user) {
-    throw new AppError("Invalid email or password", 401)
+  const loginIpAndIdentifier = rateLimitKeys.loginIpAndIdentifier(identifier, ip);
+  const failedAttempts = await getRateLimitCount(loginIpAndIdentifier);
+
+  if (failedAttempts >= 5) {
+    throw new AppError("Too many failed login attempts. Please try again later.", 429,);
   }
 
-  const isMatch = await bcrypt.compare(data?.password, user?.password || "");
-  if (!isMatch) {
+  const isMatch = await bcrypt.compare(data?.password, user?.password || DUMMY_HASH);
+
+  if (!user || !isMatch) {
+    await incrementRateLimit(loginIpAndIdentifier, 900);
     throw new AppError("Invalid email or password", 401);
   }
+
+  await resetRateLimit(loginIpAndIdentifier);
 
   const accessToken = generateAccessToken(user?.id);
   const refreshToken = generateRefreshToken(user?.id);
@@ -137,7 +152,6 @@ export async function getCurrentUser(userId: string) {
 };
 
 
-
 export async function getNewTokens(data: string) {
   const decoded = verifyRefreshToken(data) as JwtPayload;
   const user = await prisma.user.findUnique({
@@ -161,27 +175,54 @@ export async function forgetPasswordOtp(email: string) {
   return { message: "OTP sent to your registered email" };
 }
 
+
 export async function changePasswordOtp(userId: string) {
   const user = await prisma.user.findUnique({
     where: { id: userId },
     select: { email: true },
   });
-  if (!user) throw new AppError("User not found", 404);
+  if (!user) throw new AppError("User not exist with this email", 404)
   await sendForgetPasswordOTP(user.email);
   return { message: "OTP sent to your registered email" };
 }
 
 
 export async function verifyResetPasswordOtp(data: VerifyOtpInput) {
+
   const key = otpKeys.resetPassword(data.email)
   const record = await verifyOTP<PasswordResetOtpPayload>(key, data.otp);
+
   if (!record) throw new AppError("Invalid Otp", 400)
-  return { message: "Otp Verified" };
+
+  const resetToken = randomBytes(32).toString("hex");
+  const tokenHash = createHash("sha256").update(resetToken).digest("hex")
+
+  const resetTokenKey = otpKeys.resetPasswordToken(data.email);
+  await setCache(resetTokenKey, tokenHash, 300);
+
+  return { message: "Otp Verified", resetToken };
 }
 
 
 export async function resetPassword(data: ResetPasswordInput) {
+
+  //we have sent token from verifyResetPasswordOtp to client and also we have stored in redis in hash 
+  const resetTokenFromClient = data?.resetToken
+  const tokenHashOfClient = createHash("sha256")
+    .update(resetTokenFromClient)
+    .digest("hex");
+
+  //we are fetching back that token for verifying that we have issued this token
+  //hacker can genrate random string and send us so that we also stored in redis as a hash 
+  const resetTokenKey = otpKeys.resetPasswordToken(data.email)
+  const resetTokenFromRedis = await getCache<string>(resetTokenKey)
+
+  if (!resetTokenFromRedis || tokenHashOfClient !== resetTokenFromRedis) {
+    throw new AppError("Invalid or expired reset token", 500);
+  }
+
   const hashedPassword = await bcrypt.hash(data.password, 10);
+
   await prisma.user.update({
     where: {
       email: data.email
@@ -190,7 +231,11 @@ export async function resetPassword(data: ResetPasswordInput) {
       password: hashedPassword
     }
   })
+
+  await deleteCache(resetTokenKey);
+
   return { message: "Password updated successfully" };
+
 }
 
 
@@ -214,19 +259,20 @@ export async function changeEmailOtp(newEmail: string, userId: string) {
     email: user.email,
     newEmail: newEmail,
     otpHash: "",
-    attempts: 0,
   });
 
   return { message: "Otp sent" }
 }
 
 
-export async function verifyEmail(data: VerifyEmailInput) {
+export async function verifyEmail(data: VerifyEmailInput, userId: string) {
 
-  console.log("fired");
-  
   const key = otpKeys.changeEmail(data.email)
   const record = await verifyOTP<ChangeEmailOtpPayload>(key, data.otp)
+
+  if (record.userId !== userId) {
+    throw new AppError("Invalid OTP", 400);
+  }
 
   await prisma.user.update({
     where: {
@@ -239,6 +285,7 @@ export async function verifyEmail(data: VerifyEmailInput) {
 
   return { message: "Email changed successfully" };
 }
+
 
 
 

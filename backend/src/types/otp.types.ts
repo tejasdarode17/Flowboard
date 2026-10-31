@@ -1,6 +1,5 @@
 export type BaseOtpPayload = {
     otpHash: string;
-    attempts: number;
 };
 
 

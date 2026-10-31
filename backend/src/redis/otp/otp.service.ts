@@ -3,9 +3,10 @@ import bcrypt from "bcryptjs";
 import { RegisterInput } from "../../validations/auth.validations";
 import { deleteCache, getCache, setCache, updateCache } from "../core/cache";
 import AppError from "../../utils/AppError";
-import { BaseOtpPayload, ChangeEmailOtpPayload, PasswordResetOtpPayload, SignUpOtpPayload } from "../../types/otp.types";
+import { BaseOtpPayload, ChangeEmailOtpPayload, PasswordResetOtpPayload, } from "../../types/otp.types";
 import { sendOTPEmail } from "../../utils/mailer";
 import { otpKeys } from "../core/keys/otp.keys";
+import redis from "../client";
 
 export function generateOtp() {
     const otp = crypto.randomInt(100000, 1000000);
@@ -17,14 +18,12 @@ export async function sendSignUpOTP(payload: RegisterInput) {
 
     const key = otpKeys.signup(email);
 
-    const existingOtp = await getCache(key);
-    if (existingOtp) {
-        await deleteCache(key);
-    }
-
     const otp = generateOtp();
-    const passwordHash = await bcrypt.hash(password, 10);
-    const otpHash = await bcrypt.hash(otp, 10);
+
+    const [passwordHash, otpHash] = await Promise.all([
+        bcrypt.hash(password, 10),
+        bcrypt.hash(otp, 10),
+    ]);
 
     await setCache(
         key,
@@ -35,10 +34,10 @@ export async function sendSignUpOTP(payload: RegisterInput) {
             mobile,
             passwordHash,
             otpHash,
-            attempts: 0,
         },
         300
     );
+
 
     await sendOTPEmail(email, otp);
 }
@@ -47,11 +46,6 @@ export async function sendSignUpOTP(payload: RegisterInput) {
 export async function sendForgetPasswordOTP(email: string) {
 
     const key = otpKeys.resetPassword(email);
-    const existingOtp = await getCache(key);
-
-    if (existingOtp) {
-        await deleteCache(key);
-    }
 
     const otp = generateOtp();
     const otpHash = await bcrypt.hash(otp, 10);
@@ -59,10 +53,9 @@ export async function sendForgetPasswordOTP(email: string) {
     const payload: PasswordResetOtpPayload = {
         email,
         otpHash,
-        attempts: 0,
     };
 
-    await setCache(otpKeys.resetPassword(email), payload, 300);
+    await setCache(key, payload, 300);
     await sendOTPEmail(email, otp);
 }
 
@@ -70,11 +63,6 @@ export async function sendForgetPasswordOTP(email: string) {
 export async function sendChangeEmailOtp(data: ChangeEmailOtpPayload) {
 
     const key = otpKeys.changeEmail(data.newEmail)
-    const existingOtp = await getCache(key)
-
-    if (existingOtp) {
-        await deleteCache(key);
-    }
 
     const otp = generateOtp();
     const otpHash = await bcrypt.hash(otp, 10);
@@ -84,12 +72,10 @@ export async function sendChangeEmailOtp(data: ChangeEmailOtpPayload) {
         userId: data.userId,
         newEmail: data.newEmail,
         otpHash: otpHash,
-        attempts: 0
     }
 
-    await setCache(otpKeys.changeEmail(data.newEmail), payload, 300);
+    await setCache(key, payload, 300);
     await sendOTPEmail(data.newEmail, otp);
-
 }
 
 
@@ -98,19 +84,21 @@ export async function verifyOTP<T extends BaseOtpPayload>(key: string, otp: stri
     const record = await getCache<T>(key);
     if (!record) throw new AppError("OTP expired", 400);
 
-    if (record.attempts >= 5) {
+    const attemptsKey = `${key}:attempts`;
+    const attempts = await redis.incr(attemptsKey);
+    if (attempts === 1) await redis.expire(attemptsKey, 300);
+
+    if (attempts > 5) {
         await deleteCache(key);
+        await deleteCache(attemptsKey);
         throw new AppError("Too many attempts", 429);
     }
 
     const isValid = await bcrypt.compare(otp, record.otpHash);
-
-    if (!isValid) {
-        const updated = await updateCache(key, { ...record, attempts: record.attempts + 1 });
-        if (!updated) throw new AppError("OTP expired", 400);
-        throw new AppError("Invalid OTP", 400);
-    }
+    if (!isValid) throw new AppError("Invalid OTP", 400);
 
     await deleteCache(key);
+    await deleteCache(attemptsKey);
     return record;
-}
+    
+} 

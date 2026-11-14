@@ -5,6 +5,8 @@ export interface CreateActivityInput {
     workspaceId: string;
     actorId: string;
 
+    eventId: string
+
     action: ActivityAction;
 
     projectId?: string;
@@ -19,8 +21,11 @@ export interface CreateActivityInput {
 
     metadata?: Record<string, any>;
 }
+    
 export interface ActivityFilters {
     limit?: string;
     cursor?: string;
     range?: "today" | "week" | "month";
 }
+
+

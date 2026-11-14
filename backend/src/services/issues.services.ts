@@ -6,6 +6,7 @@ import { createNotification } from "./notification.services";
 import { emitToUser } from "../socket/socket";
 
 export async function createIssue(data: issueInput, projectId: string, actorId: string) {
+    
     const project = await prisma.project.findUnique({
         where: {
             id: projectId,
@@ -60,7 +61,7 @@ export async function createIssue(data: issueInput, projectId: string, actorId: 
             //for the performance you used promise.all here we can fetched simply too but it would take more time 
             //now with promise.all both the queries will fire at same time and whoever takes the maximum time that time will be our final time 
             //without this two individual querires can take their own timm if first is taking x and 2nd 2x then total time will be 3x
-            //but with promise.all it will me 2x only 
+            //but with promise.all it will be 2x only 
             const [creator, assignee] = await Promise.all([
                 // creator means loggedin user jo crete kar rahh hai issue actor
                 //assignee mean jisko bhejna hai ye jisko assigenhua hai 
@@ -89,6 +90,7 @@ export async function createIssue(data: issueInput, projectId: string, actorId: 
             ]);
 
             if (assignee) {
+
                 const notification = await createNotification({
                     memberId: data.assignedTo, //owner of this notifications 
                     workspaceId: project.workspaceId,
@@ -110,7 +112,7 @@ export async function createIssue(data: issueInput, projectId: string, actorId: 
                     },
                 });
 
-
+            
                 emitToUser(assignee.userId, "notification:new", notification)
 
             }
@@ -337,7 +339,6 @@ export async function updateIssue(issueId: string, data: UpdateissueInput, actor
                 },
             });
 
-
             emitToUser(newAssignee.user.id, "notification:new", notification)
 
         } catch (error) {
@@ -402,7 +403,6 @@ export async function getMyIssues(workspaceId: string, userId: string) {
         },
         orderBy: { createdAt: "desc" },
     });
-
     return issues
 }
 

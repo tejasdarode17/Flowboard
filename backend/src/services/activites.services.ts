@@ -3,12 +3,22 @@ import prisma from "../lib/prisma";
 import { ActivityFilters, CreateActivityInput } from "../types/activity.types";
 
 
-export async function createActivity(data: CreateActivityInput, tx: Prisma.TransactionClient | typeof prisma = prisma) {
-    const activity = await tx.activity.create({
-        data,
-    });
+// export async function createActivity(data: CreateActivityInput, tx: Prisma.TransactionClient | typeof prisma = prisma) {
+//     const activity = await tx.activity.create({
+//         data,
+//     });
+//     return activity
+// }
 
-    return activity
+
+export async function createActivity(data: CreateActivityInput) {
+    return await prisma.activity.upsert({
+        where: {
+            eventId: data.eventId,
+        },
+        update: {},
+        create: data,
+    });
 }
 
 export async function getActivities(workspaceId: string, filters: ActivityFilters) {
@@ -22,7 +32,7 @@ export async function getActivities(workspaceId: string, filters: ActivityFilter
         start.setHours(0, 0, 0, 0);
 
         dateFilter = {
-            gte: start, 
+            gte: start,
         };
     }
 
@@ -47,7 +57,7 @@ export async function getActivities(workspaceId: string, filters: ActivityFilter
 
 
     const activities = await prisma.activity.findMany({
-      
+
         where: {
             workspaceId,
             ...(dateFilter && { createdAt: dateFilter }),
@@ -93,7 +103,7 @@ export async function getActivities(workspaceId: string, filters: ActivityFilter
     return {
         activities: items,
         nextCursor,
-        hasMore,    
+        hasMore,
     };
 }
 
@@ -127,17 +137,6 @@ export async function getRecentActivities(workspaceId: string) {
 
     return activities
 }
-
-
-
-
-
-
-
-
-
-
-
 
 
 // export async function getProjectActivities(projectId: string) {

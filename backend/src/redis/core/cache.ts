@@ -1,4 +1,4 @@
-import redis from "../client";
+import redis from "./client";
 
 
 

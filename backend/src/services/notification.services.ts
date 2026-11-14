@@ -1,3 +1,4 @@
+import { randomUUID } from "crypto";
 import prisma from "../lib/prisma";
 import { CreateNotificationInput } from "../types/notification.types";
 
@@ -5,6 +6,7 @@ import { CreateNotificationInput } from "../types/notification.types";
 export async function createNotification(data: CreateNotificationInput) {
     const notification = await prisma.notification.create({
         data: {
+            eventId: randomUUID(),
             memberId: data.memberId,
             workspaceId: data.workspaceId,
             projectId: data.projectId,

@@ -11,7 +11,10 @@ CREATE TYPE "IssueStatus" AS ENUM ('TODO', 'IN_PROGRESS', 'DONE');
 CREATE TYPE "Priority" AS ENUM ('Low', 'Medium', 'High');
 
 -- CreateEnum
-CREATE TYPE "NotificationType" AS ENUM ('ISSUE_ASSIGNED', 'ISSUE_UPDATED', 'PR_OPENED', 'PR_MERGED', 'MEMBER_INVITED', 'MEMBER_JOINED');
+CREATE TYPE "ActivityAction" AS ENUM ('WORKSPACE_UPDATED', 'PROJECT_CREATED', 'PROJECT_UPDATED', 'PROJECT_DELETED', 'ISSUE_CREATED', 'ISSUE_UPDATED', 'ISSUE_DELETED', 'ISSUE_STATUS_CHANGED', 'ISSUE_PRIORITY_CHANGED', 'ISSUE_ASSIGNED', 'ISSUE_COMPLETED', 'ISSUE_REOPENED', 'MEMBER_JOINED', 'MEMBER_REMOVED', 'MEMBER_ROLE_CHANGED', 'PUSH', 'PR_OPENED', 'PR_MERGED', 'PR_CLOSED', 'PR_REOPENED', 'COMMENT_ADDED');
+
+-- CreateEnum
+CREATE TYPE "NotificationType" AS ENUM ('ISSUE_ASSIGNED', 'ISSUE_UPDATED', 'ISSUE_COMMENTED', 'ISSUE_CREATED', 'PR_OPENED', 'PR_MERGED', 'MEMBER_INVITED', 'MEMBER_JOINED', 'MEMBER_REMOVED', 'MEMBER_ROLE_CHANGED');
 
 -- CreateTable
 CREATE TABLE "User" (
@@ -78,8 +81,8 @@ CREATE TABLE "Issue" (
     "description" TEXT,
     "status" "IssueStatus" NOT NULL DEFAULT 'TODO',
     "priority" "Priority" NOT NULL DEFAULT 'Medium',
-    "assignedTo" TEXT NOT NULL,
-    "createdBy" TEXT NOT NULL,
+    "assignedTo" TEXT,
+    "createdBy" TEXT,
     "projectId" TEXT NOT NULL,
     "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "updatedAt" TIMESTAMP(3) NOT NULL,
@@ -115,7 +118,7 @@ CREATE TABLE "GithubAccount" (
 );
 
 -- CreateTable
-CREATE TABLE "ProjectGitHub" (
+CREATE TABLE "ProjectGithub" (
     "id" TEXT NOT NULL,
     "projectId" TEXT NOT NULL,
     "repoFullName" TEXT NOT NULL,
@@ -124,22 +127,20 @@ CREATE TABLE "ProjectGitHub" (
     "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "updatedAt" TIMESTAMP(3) NOT NULL,
 
-    CONSTRAINT "ProjectGitHub_pkey" PRIMARY KEY ("id")
+    CONSTRAINT "ProjectGithub_pkey" PRIMARY KEY ("id")
 );
 
 -- CreateTable
 CREATE TABLE "Activity" (
     "id" TEXT NOT NULL,
+    "eventId" TEXT NOT NULL,
     "workspaceId" TEXT NOT NULL,
     "projectId" TEXT,
-    "actorId" TEXT NOT NULL,
-    "action" TEXT NOT NULL,
+    "actorId" TEXT,
+    "action" "ActivityAction" NOT NULL,
     "entityType" TEXT,
     "entityId" TEXT,
     "entityName" TEXT,
-    "targetType" TEXT,
-    "targetId" TEXT,
-    "targetName" TEXT,
     "metadata" JSONB,
     "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
 
@@ -149,13 +150,19 @@ CREATE TABLE "Activity" (
 -- CreateTable
 CREATE TABLE "Notification" (
     "id" TEXT NOT NULL,
-    "userId" TEXT NOT NULL,
-    "actorId" TEXT,
-    "type" "NotificationType" NOT NULL,
+    "eventId" TEXT NOT NULL,
+    "memberId" TEXT NOT NULL,
+    "workspaceId" TEXT NOT NULL,
+    "projectId" TEXT,
+    "title" TEXT NOT NULL,
     "message" TEXT NOT NULL,
-    "read" BOOLEAN NOT NULL DEFAULT false,
+    "type" "NotificationType" NOT NULL,
+    "entityId" TEXT,
+    "entityType" TEXT,
     "metadata" JSONB,
+    "read" BOOLEAN NOT NULL DEFAULT false,
     "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "userId" TEXT,
 
     CONSTRAINT "Notification_pkey" PRIMARY KEY ("id")
 );
@@ -188,7 +195,19 @@ CREATE UNIQUE INDEX "GithubAccount_userId_key" ON "GithubAccount"("userId");
 CREATE UNIQUE INDEX "GithubAccount_githubId_key" ON "GithubAccount"("githubId");
 
 -- CreateIndex
-CREATE UNIQUE INDEX "ProjectGitHub_projectId_key" ON "ProjectGitHub"("projectId");
+CREATE UNIQUE INDEX "ProjectGithub_projectId_key" ON "ProjectGithub"("projectId");
+
+-- CreateIndex
+CREATE UNIQUE INDEX "Activity_eventId_key" ON "Activity"("eventId");
+
+-- CreateIndex
+CREATE INDEX "Activity_workspaceId_createdAt_idx" ON "Activity"("workspaceId", "createdAt");
+
+-- CreateIndex
+CREATE INDEX "Notification_memberId_createdAt_idx" ON "Notification"("memberId", "createdAt");
+
+-- CreateIndex
+CREATE UNIQUE INDEX "Notification_eventId_memberId_key" ON "Notification"("eventId", "memberId");
 
 -- AddForeignKey
 ALTER TABLE "Member" ADD CONSTRAINT "Member_userId_fkey" FOREIGN KEY ("userId") REFERENCES "User"("id") ON DELETE CASCADE ON UPDATE CASCADE;
@@ -197,34 +216,43 @@ ALTER TABLE "Member" ADD CONSTRAINT "Member_userId_fkey" FOREIGN KEY ("userId") 
 ALTER TABLE "Member" ADD CONSTRAINT "Member_workspaceId_fkey" FOREIGN KEY ("workspaceId") REFERENCES "Workspace"("id") ON DELETE CASCADE ON UPDATE CASCADE;
 
 -- AddForeignKey
-ALTER TABLE "Project" ADD CONSTRAINT "Project_workspaceId_fkey" FOREIGN KEY ("workspaceId") REFERENCES "Workspace"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+ALTER TABLE "Project" ADD CONSTRAINT "Project_workspaceId_fkey" FOREIGN KEY ("workspaceId") REFERENCES "Workspace"("id") ON DELETE CASCADE ON UPDATE CASCADE;
 
 -- AddForeignKey
-ALTER TABLE "Issue" ADD CONSTRAINT "Issue_assignedTo_fkey" FOREIGN KEY ("assignedTo") REFERENCES "Member"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+ALTER TABLE "Issue" ADD CONSTRAINT "Issue_assignedTo_fkey" FOREIGN KEY ("assignedTo") REFERENCES "Member"("id") ON DELETE SET NULL ON UPDATE CASCADE;
 
 -- AddForeignKey
-ALTER TABLE "Issue" ADD CONSTRAINT "Issue_createdBy_fkey" FOREIGN KEY ("createdBy") REFERENCES "Member"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+ALTER TABLE "Issue" ADD CONSTRAINT "Issue_createdBy_fkey" FOREIGN KEY ("createdBy") REFERENCES "Member"("id") ON DELETE SET NULL ON UPDATE CASCADE;
 
 -- AddForeignKey
-ALTER TABLE "Issue" ADD CONSTRAINT "Issue_projectId_fkey" FOREIGN KEY ("projectId") REFERENCES "Project"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+ALTER TABLE "Issue" ADD CONSTRAINT "Issue_projectId_fkey" FOREIGN KEY ("projectId") REFERENCES "Project"("id") ON DELETE CASCADE ON UPDATE CASCADE;
 
 -- AddForeignKey
-ALTER TABLE "WorkspaceInvite" ADD CONSTRAINT "WorkspaceInvite_workspaceId_fkey" FOREIGN KEY ("workspaceId") REFERENCES "Workspace"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+ALTER TABLE "WorkspaceInvite" ADD CONSTRAINT "WorkspaceInvite_workspaceId_fkey" FOREIGN KEY ("workspaceId") REFERENCES "Workspace"("id") ON DELETE CASCADE ON UPDATE CASCADE;
 
 -- AddForeignKey
 ALTER TABLE "GithubAccount" ADD CONSTRAINT "GithubAccount_userId_fkey" FOREIGN KEY ("userId") REFERENCES "User"("id") ON DELETE CASCADE ON UPDATE CASCADE;
 
 -- AddForeignKey
-ALTER TABLE "ProjectGitHub" ADD CONSTRAINT "ProjectGitHub_projectId_fkey" FOREIGN KEY ("projectId") REFERENCES "Project"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+ALTER TABLE "ProjectGithub" ADD CONSTRAINT "ProjectGithub_projectId_fkey" FOREIGN KEY ("projectId") REFERENCES "Project"("id") ON DELETE CASCADE ON UPDATE CASCADE;
 
 -- AddForeignKey
-ALTER TABLE "Activity" ADD CONSTRAINT "Activity_workspaceId_fkey" FOREIGN KEY ("workspaceId") REFERENCES "Workspace"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+ALTER TABLE "Activity" ADD CONSTRAINT "Activity_workspaceId_fkey" FOREIGN KEY ("workspaceId") REFERENCES "Workspace"("id") ON DELETE CASCADE ON UPDATE CASCADE;
 
 -- AddForeignKey
 ALTER TABLE "Activity" ADD CONSTRAINT "Activity_projectId_fkey" FOREIGN KEY ("projectId") REFERENCES "Project"("id") ON DELETE SET NULL ON UPDATE CASCADE;
 
 -- AddForeignKey
-ALTER TABLE "Activity" ADD CONSTRAINT "Activity_actorId_fkey" FOREIGN KEY ("actorId") REFERENCES "Member"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+ALTER TABLE "Activity" ADD CONSTRAINT "Activity_actorId_fkey" FOREIGN KEY ("actorId") REFERENCES "Member"("id") ON DELETE SET NULL ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "Notification" ADD CONSTRAINT "Notification_memberId_fkey" FOREIGN KEY ("memberId") REFERENCES "Member"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "Notification" ADD CONSTRAINT "Notification_workspaceId_fkey" FOREIGN KEY ("workspaceId") REFERENCES "Workspace"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "Notification" ADD CONSTRAINT "Notification_projectId_fkey" FOREIGN KEY ("projectId") REFERENCES "Project"("id") ON DELETE CASCADE ON UPDATE CASCADE;
 
 -- AddForeignKey
 ALTER TABLE "Notification" ADD CONSTRAINT "Notification_userId_fkey" FOREIGN KEY ("userId") REFERENCES "User"("id") ON DELETE CASCADE ON UPDATE CASCADE;

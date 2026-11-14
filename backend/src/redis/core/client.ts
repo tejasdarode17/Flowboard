@@ -3,7 +3,7 @@ import dotenv from "dotenv";
 dotenv.config();
 
 const redis = new Redis(process.env.REDIS_URL as string, {
-    maxRetriesPerRequest: null,
+    maxRetriesPerRequest: 2,
 });
 
 redis.on("connect", () => console.log("Redis connected"));

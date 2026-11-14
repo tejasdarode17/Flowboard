@@ -16,6 +16,7 @@ import notificationsRoutes from './routes/notifications.routes'
 import errorMiddleware from "./middlewares/error.middleware";
 import cloudinaryConfig from './lib/cloudinary';
 import { initSocket } from './socket/socket';
+import { closeWorkers, startWorkers } from './queues/worker';
 import { globalRateLimit } from './middlewares/rate_limit_middlewares/global_rate_limit.middleware';
 
 dotenv.config();
@@ -38,12 +39,7 @@ app.use(
 
 app.use(cookieParser());
 
-app.get("/", (req: Request, res: Response) => {
-  res.send("Hello")
-})
-
-
-// GitHub webhook needs the raw request body for signature verification,
+// GitHub webhook needs the *raw* request body for signature verification,
 // so this route is mounted before express.json().
 app.use("/api/github", webhooksRoutes)
 
@@ -63,9 +59,16 @@ app.use("/api/user", userRoutes)
 app.use(errorMiddleware);
 
 initSocket(httpServer);
+startWorkers()
 
 httpServer.listen(PORT, () => {
   cloudinaryConfig()
   console.log(`Server is running on ${PORT}`);
 });
 
+//Render deploy/restart pe SIGTERM bhejta hai. Chalti worker jobs ko
+//khatam hone do, phir server band karo (warna job beech mein kat jati hai)
+process.on("SIGTERM", async () => {
+  await closeWorkers();
+  httpServer.close(() => process.exit(0));
+});

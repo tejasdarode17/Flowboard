@@ -24,9 +24,4 @@ export const rateLimitKeys = {
 
 
     userAction: (purpose: UserActionPurpose, userId: string) => `rl:user-action:${purpose}:${userId}`,
-
-    inviteUser: (userId: string) => `rl:invite-user:${userId}`,
-    uploadUser: (userId: string) => `rl:upload-user:${userId}`,
-    githubReposUser: (userId: string) => `rl:github-repos-user:${userId}`,
-
 };

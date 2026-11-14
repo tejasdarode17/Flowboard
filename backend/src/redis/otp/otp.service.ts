@@ -6,7 +6,8 @@ import AppError from "../../utils/AppError";
 import { BaseOtpPayload, ChangeEmailOtpPayload, PasswordResetOtpPayload, } from "../../types/otp.types";
 import { sendOTPEmail } from "../../utils/mailer";
 import { otpKeys } from "../core/keys/otp.keys";
-import redis from "../client";
+import redis from "../core/client";
+import { incrementRateLimit } from "../rate_limit/rateLimit.config";
 
 export function generateOtp() {
     const otp = crypto.randomInt(100000, 1000000);
@@ -85,8 +86,7 @@ export async function verifyOTP<T extends BaseOtpPayload>(key: string, otp: stri
     if (!record) throw new AppError("OTP expired", 400);
 
     const attemptsKey = `${key}:attempts`;
-    const attempts = await redis.incr(attemptsKey);
-    if (attempts === 1) await redis.expire(attemptsKey, 300);
+    const attempts = await incrementRateLimit(attemptsKey, 300)
 
     if (attempts > 5) {
         await deleteCache(key);
@@ -100,5 +100,5 @@ export async function verifyOTP<T extends BaseOtpPayload>(key: string, otp: stri
     await deleteCache(key);
     await deleteCache(attemptsKey);
     return record;
-    
+
 } 

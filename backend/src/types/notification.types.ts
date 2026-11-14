@@ -1,10 +1,10 @@
+
 import { NotificationType, Prisma } from "@prisma/client";
 
 export type CreateNotificationInput = {
     memberId: string;
     workspaceId: string;
-
-    projectId?: string
+    projectId?: string;
 
     title: string;
     message: string;
@@ -14,5 +14,19 @@ export type CreateNotificationInput = {
     entityId?: string;
     entityType?: string;
 
-    metadata?: Record<string, any>
+    metadata?: Prisma.InputJsonValue;
+    // metadata?: Record<string, any>
+};
+
+
+export type NotificationPayload = Omit<CreateNotificationInput, "memberId">;
+
+export type NotificationAudience =
+    | { type: "workspace"; workspaceId: string }
+    | { type: "member"; memberId: string; userId: string }
+
+export type NotificationJobData = {
+    eventId: string;
+    audience: NotificationAudience;
+    payload: NotificationPayload;
 };

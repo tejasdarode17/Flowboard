@@ -166,6 +166,8 @@ model ProjectGithub {
 model Activity {
   id String @id @default(uuid())
 
+  eventId String @unique
+
   workspaceId String
   workspace   Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
 
@@ -184,6 +186,8 @@ model Activity {
   metadata Json?
 
   createdAt DateTime @default(now())
+
+  @@index([workspaceId, createdAt])
 }
 
 enum ActivityAction {
@@ -219,8 +223,10 @@ enum ActivityAction {
 model Notification {
   id String @id @default(cuid())
 
-  memberId String?
-  member   Member? @relation(fields: [memberId], references: [id], onDelete: SetNull)
+  eventId String
+
+  memberId String
+  member   Member @relation(fields: [memberId], references: [id], onDelete: Cascade)
 
   workspaceId String
   workspace   Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
@@ -244,6 +250,7 @@ model Notification {
   user      User?    @relation(fields: [userId], references: [id], onDelete: Cascade)
   userId    String?
 
+  @@unique([eventId, memberId])
   @@index([memberId, createdAt])
 }
 

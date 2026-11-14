@@ -8,9 +8,6 @@ export async function requireWorkspaceAccess(req: Request, res: Response, next: 
         const userId = req?.user?.userId
         const workspaceSlug = req?.params?.workspaceSlug
         
-        console.log(workspaceSlug);
-
-
         if (!userId) {
             return next(new AppError("Unauthorized", 401));
         }

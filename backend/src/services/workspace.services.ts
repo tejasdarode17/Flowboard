@@ -1,4 +1,4 @@
-import crypto from 'crypto';
+import crypto, { randomUUID } from 'crypto';
 import { Prisma, Role } from '@prisma/client';
 import { CreateWorkspaceInput, UpdateWorkspaceInput } from "./../validations/worksapce.validations";
 import prisma from "../lib/prisma";
@@ -7,8 +7,8 @@ import slugify from "slugify";
 import { deleteImageFromCloudinary, uploadImageToCloudinary } from '../utils/cloudinaryHandler';
 import { sendInviteEmail } from '../utils/mailer';
 import { createActivity } from './activites.services';
-import { createNotification } from './notification.services';
-import { emitToUser, emitToWorkspace } from '../socket/socket';
+import { enqueueNotification } from '../queues/notification/notification.queue';
+import { enqueueActivity } from '../queues/activity/activity.queue';
 
 export async function createWorkspace(data: CreateWorkspaceInput, userId: string, file: Buffer | undefined) {
 
@@ -101,42 +101,39 @@ export async function updateWorkspace(data: UpdateWorkspaceInput, workspaceId: s
     return workspace;
   }
 
-
-  const updatedWorkspace = await prisma.$transaction(async (tx) => {
-    const updatedWorkspace = await tx.workspace.update({
-      where: {
-        id: workspaceId,
-      },
-      data: updatedData,
-    });
-
-    await createActivity(
-      {
-        workspaceId: workspace.id,
-
-        actorId: memberId,
-
-        action: "WORKSPACE_UPDATED",
-
-        entityType: "WORKSPACE",
-        entityId: workspace.id,
-        entityName: updatedWorkspace.name,
-
-        metadata: {
-          updatedFields: Object.keys(updatedData),
-
-          oldName: workspace.name,
-          newName: updatedWorkspace.name,
-
-          oldDescription: workspace.description,
-          newDescription: updatedWorkspace.description,
-        },
-      },
-      tx
-    );
-
-    return updatedWorkspace;
+  const updatedWorkspace = await prisma.workspace.update({
+    where: {
+      id: workspaceId,
+    },
+    data: updatedData,
   });
+
+  try {
+
+    await enqueueActivity({
+      workspaceId: workspace.id,
+      eventId: randomUUID(),
+      actorId: memberId,
+
+      action: "WORKSPACE_UPDATED",
+
+      entityType: "WORKSPACE",
+      entityId: workspace.id,
+      entityName: updatedWorkspace.name,
+
+      metadata: {
+        updatedFields: Object.keys(updatedData),
+
+        oldName: workspace.name,
+        newName: updatedWorkspace.name,
+
+        oldDescription: workspace.description,
+        newDescription: updatedWorkspace.description,
+      },
+    })
+  } catch (error) {
+    console.error("Failed to enqueue activity", error);
+  }
 
   return { ...updatedWorkspace, role: member.role };
 
@@ -197,7 +194,7 @@ export async function deleteWorkspace(workspaceId: string) {
   }
 
   await prisma.workspace.delete({ where: { id: workspaceId } });
-}
+};
 
 
 // ----------------Members of workspace---------------------
@@ -324,59 +321,96 @@ export async function acceptWorkspaceInvite(token: string, userId: string) {
       data: { accepted: true },
     });
 
-    await createActivity({
-      workspaceId: invite.workspaceId,
-      actorId: member.id,
-      action: "MEMBER_JOINED",
-      entityType: "MEMBER",
-      entityId: member.id,
-      entityName: user.name,
-    }, tx)
     return member;
   });
 
-  //notification 
-  try {
 
-    const members = await prisma.member.findMany({
-      where: {
+  try {
+    await enqueueActivity({
+      workspaceId: invite.workspaceId,
+      eventId: randomUUID(),
+      actorId: result.id,
+      action: "MEMBER_JOINED",
+      entityType: "MEMBER",
+      entityId: result.id,
+      entityName: user.name,
+    })
+
+  } catch (error) {
+    console.error("Failed to enqueue activity", error)
+  }
+
+  //notification old 
+  // try {
+
+  //   const members = await prisma.member.findMany({
+  //     where: {
+  //       workspaceId: invite.workspaceId,
+  //     },
+  //     select: {
+  //       id: true,
+  //     },
+  //   });
+
+  //   await Promise.all(
+  //     //map execute hoke array hoga promises ka matlab db calling funcitons ka 
+  //     members.map((m) =>
+  //       createNotification({
+  //         memberId: m.id,
+  //         workspaceId: invite.workspaceId,
+
+  //         title: "New member joined",
+  //         message: `${user.name} joined ${workspace.name}`,
+
+  //         type: "MEMBER_JOINED",
+  //         entityId: result.id,
+  //         entityType: "MEMBER",
+
+  //         metadata: {
+  //           joinedUserId: user.id,
+  //           joinedUserName: user.name,
+  //         },
+  //       })
+  //     )
+  //   );
+
+  //   emitToWorkspace(
+  //     workspace.id,
+  //     "notification:new",
+  //     {
+  //       workspaceId: invite.workspaceId,
+  //       title: "New member joined",
+  //       message: `${user.name} joined ${workspace.name}`,
+
+  //       type: "MEMBER_JOINED",
+
+  //       entityId: result.id,
+  //       entityType: "MEMBER",
+
+  //       metadata: {
+  //         joinedUserId: user.id,
+  //         joinedUserName: user.name,
+  //       },
+  //     }
+  //   )
+  // } catch (error) {
+  //   console.error("Failed to create member joined notifications", error);
+  // }
+
+  //notification bull mq
+  try {
+    await enqueueNotification({
+      eventId: randomUUID(),
+
+      audience: {
+        type: "workspace",
         workspaceId: invite.workspaceId,
       },
-      select: {
-        id: true,
-      },
-    });
 
-    await Promise.all(
-      //map execute hoke array hoga promises ka matlab db calling funcitons ka 
-      members.map((m) =>
-        createNotification({
-          memberId: m.id,
-          workspaceId: invite.workspaceId,
-
-          title: "New member joined",
-          message: `${user.name} joined ${workspace.name}`,
-
-          type: "MEMBER_JOINED",
-          entityId: result.id,
-          entityType: "MEMBER",
-
-          metadata: {
-            joinedUserId: user.id,
-            joinedUserName: user.name,
-          },
-        })
-      )
-    );
-
-    emitToWorkspace(
-      workspace.id,
-      "notification:new",
-      {
+      payload: {
         workspaceId: invite.workspaceId,
         title: "New member joined",
         message: `${user.name} joined ${workspace.name}`,
-
         type: "MEMBER_JOINED",
 
         entityId: result.id,
@@ -385,18 +419,19 @@ export async function acceptWorkspaceInvite(token: string, userId: string) {
         metadata: {
           joinedUserId: user.id,
           joinedUserName: user.name,
-        },
+        }
       }
-    )
+    })
   } catch (error) {
-    console.error("Failed to create member joined notifications", error);
+    console.error("Failed to enqueue member joined notification", error);
   }
 
   return {
     workspaceId: invite.workspaceId,
     memberId: result.id,
   };
-}
+
+};
 
 
 export async function removeMember(workspaceId: string, targetMemberId: string, actorMemberId: string) {
@@ -468,7 +503,7 @@ export async function removeMember(workspaceId: string, targetMemberId: string, 
     success: true,
     message: "Member removed successfully",
   };
-}
+};
 
 
 export async function updateMemberRole(workspaceId: string, targetMemberId: string, actorMemberId: string, role: Role) {
@@ -513,64 +548,88 @@ export async function updateMemberRole(workspaceId: string, targetMemberId: stri
 
   const oldRole = target.role;
 
-  const updatedMember = await prisma.$transaction(async (tx) => {
-    // 1. update role
-    const updated = await tx.member.update({
-      where: { id: target.id },
-      data: { role },
+  const updatedMember = await prisma.member.update({
+    where: { id: target.id },
+    data: { role },
+  });
+
+
+
+  try {
+    await enqueueActivity({
+      eventId: randomUUID(),
+      workspaceId,
+      actorId: actor.id,
+      action: "MEMBER_ROLE_CHANGED",
+      entityType: "MEMBER",
+      entityId: target.id,
+      entityName: target.user.name,
+      metadata: { oldRole, newRole: role },
     });
+  } catch (error) {
+    console.error("Failed to enqueue activity", error);
+  }
 
-    // 2. activity
-    await createActivity(
-      {
+  //notification
+  // try {
+  //   const notification = await createNotification({
+  //     memberId: target.id,
+  //     workspaceId,
+  //     title: "Role updated",
+  //     message: `Your role has been changed from ${oldRole} to ${role}`,
+
+  //     type: "MEMBER_ROLE_CHANGED",
+
+  //     entityId: target.id,
+  //     entityType: "MEMBER",
+
+  //     metadata: {
+  //       oldRole,
+  //       newRole: role,
+  //       changedByMemberId: actor.id,
+  //     }
+  //   });
+
+  //   emitToUser(target.user.id, "notification:new", notification)
+
+
+  // } catch (err) {
+  //   console.error("Notification failed", err);
+  // }
+
+  //notification bull mq 
+  try {
+    await enqueueNotification({
+      eventId: randomUUID(),
+
+      audience: {
+        type: "member",
+        userId: target.user.id,
+        memberId: target.id
+      },
+
+      payload: {
         workspaceId,
+        title: "Role updated",
+        message: `Your role has been changed from ${oldRole} to ${role}`,
 
-        actorId: actor.id,
+        type: "MEMBER_ROLE_CHANGED",
 
-        action: "MEMBER_ROLE_CHANGED",
-
-        entityType: "MEMBER",
         entityId: target.id,
-        entityName: target.user.name,
+        entityType: "MEMBER",
 
         metadata: {
           oldRole,
           newRole: role,
-        },
-      },
-      tx
-    );
-
-    return updated;
-  });
-
-
-  //notification
-  try {
-    const notification = await createNotification({
-      memberId: target.id,
-      workspaceId,
-      title: "Role updated",
-      message: `Your role has been changed from ${oldRole} to ${role}`,
-
-      type: "MEMBER_ROLE_CHANGED",
-
-      entityId: target.id,
-      entityType: "MEMBER",
-
-      metadata: {
-        oldRole,
-        newRole: role,
-        changedByMemberId: actor.id,
+          changedByMemberId: actor.id,
+        }
       }
-    });
 
-    emitToUser(target.user.id, "notification:new", notification)
+    })
 
-
-  } catch (err) {
-    console.error("Notification failed", err);
+  } catch (error) {
+    console.error("Notification failed", error);
   }
 
   return updatedMember;
-}
+};

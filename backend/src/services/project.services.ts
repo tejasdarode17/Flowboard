@@ -4,9 +4,12 @@ import AppError from "../utils/AppError";
 import { Prisma } from "@prisma/client";
 import { ProjectInput, UpdateProjectInput } from "../validations/project.validations";
 import { createActivity } from "./activites.services";
+import { enqueueActivity } from "../queues/activity/activity.queue";
+import { randomUUID } from "node:crypto";
 
 
 export async function createProject(data: ProjectInput, workspaceId: string, actorId: string) {
+
     const existing = await prisma.project.findFirst({
         where: {
             name: data.name,
@@ -24,20 +27,21 @@ export async function createProject(data: ProjectInput, workspaceId: string, act
         trim: true,
     });
 
-    const project = await prisma.$transaction(async (tx) => {
-        const project = await tx.project.create({
-            data: {
-                name: data.name,
-                slug,
-                description: data.description,
-                emoji: data.emoji,
-                emojiId: data.emojiId,
-                workspaceId,
-            },
-        });
+    const project = await prisma.project.create({
+        data: {
+            name: data.name,
+            slug,
+            description: data.description,
+            emoji: data.emoji,
+            emojiId: data.emojiId,
+            workspaceId,
+        },
+    });
 
-        await createActivity(
+    try {
+        await enqueueActivity(
             {
+                eventId: randomUUID(),
                 workspaceId,
                 projectId: project.id,
 
@@ -49,17 +53,18 @@ export async function createProject(data: ProjectInput, workspaceId: string, act
                 entityId: project.id,
                 entityName: project.name,
             },
-            tx
-        );
-
-        return project;
-    });
+        )
+    } catch (error) {
+        console.error("Failed to enqueue activity", error)
+    }
 
     return project;
 }
 
 
+
 export async function updateProject(data: UpdateProjectInput, workspaceId: string, projectId: string, actorId: string) {
+
     const project = await prisma.project.findFirst({
         where: {
             id: projectId,
@@ -92,44 +97,42 @@ export async function updateProject(data: UpdateProjectInput, workspaceId: strin
         updatedData.emojiId = data.emojiId;
     }
 
-    const updatedProject = await prisma.$transaction(async (tx) => {
-        const updated = await tx.project.update({
-            where: { id: projectId },
-            data: updatedData,
-        });
-
-        await createActivity(
-            {
-                workspaceId,
-                projectId: project.id,
-
-                actorId,
-
-                action: "PROJECT_UPDATED",
-
-                entityType: "PROJECT",
-                entityId: project.id,
-                entityName: updated.name,
-
-                metadata: {
-                    oldName: project.name,
-                    newName: updated.name,
-                },
-            },
-            tx
-        );
-
-        return updated;
+    const updatedProject = await prisma.project.update({
+        where: { id: projectId },
+        data: updatedData,
     });
+
+    await createActivity(
+        {
+            eventId: randomUUID(),
+            workspaceId,
+            projectId: project.id,
+
+            actorId,
+
+            action: "PROJECT_UPDATED",
+
+            entityType: "PROJECT",
+            entityId: project.id,
+            entityName: updateProject.name,
+
+            metadata: {
+                oldName: project.name,
+                newName: updateProject.name,
+            },
+        },
+    );
 
     return updatedProject;
 }
+
 
 
 export async function getProjects(workspaceId: string) {
     const projects = await prisma.project.findMany({ where: { workspaceId: workspaceId } })
     return projects
 }
+
 
 
 export async function getProjectDetails(projectId: string) {
@@ -142,6 +145,7 @@ export async function getProjectDetails(projectId: string) {
     }
     return project
 }
+
 
 
 export async function deleteProject(projectId: string, workspaceId: string, actorId: string) {
@@ -157,32 +161,26 @@ export async function deleteProject(projectId: string, workspaceId: string, acto
         throw new AppError("Project not found", 404);
     }
 
-    await prisma.$transaction(async (tx) => {
-        await createActivity(
-            {
-                workspaceId,
-                projectId: project.id,
+    await prisma.project.delete({ where: { id: project.id } })
 
-                actorId,
+    await enqueueActivity(
+        {
+            eventId: randomUUID(),
+            workspaceId,
+            projectId: project.id,
 
-                action: "PROJECT_DELETED",
+            actorId,
 
-                entityType: "PROJECT",
-                entityId: project.id,
-                entityName: project.name,
-            },
-            tx
-        );
-        await tx.project.delete({
-            where: {
-                id: project.id,
-            },
-        });
-    });
+            action: "PROJECT_DELETED",
 
-    return {
-        success: true,
-    };
+            entityType: "PROJECT",
+            entityId: project.id,
+            entityName: project.name,
+        }
+
+    )
+
+    return { success: true }
 }
 
 

@@ -11,6 +11,7 @@ export const getActivities = async ({ workspaceSlug, range, cursor, limit }: Get
 
 }
 
+
 export const getRecentActivities = async (workspaceSlug: string) => {
     const { data: response } = await api.get(`/api/workspace/${workspaceSlug}/recent/activities`)
     return response.data

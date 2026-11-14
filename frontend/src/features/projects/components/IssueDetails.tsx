@@ -101,10 +101,10 @@ const IssueDetails = ({ issueId, open, onClose }: Props) => {
                 </div>
                 <div className="flex items-center gap-2">
                   <Avatar className="h-6 w-6 rounded-full border border-border/40">
-                    <AvatarImage src={issue?.assignee?.user?.avatar} />
+                    <AvatarImage src={issue?.assignee?.user?.avatar ?? "Flowboard user"} />
                     <AvatarFallback className="text-[10px]">{issue?.assignee?.user?.name?.charAt(0).toUpperCase()}</AvatarFallback>
                   </Avatar>
-                  <span className="text-[12px]">{issue?.assignee?.user?.name}</span>
+                  <span className="text-[12px]">{issue?.assignee?.user?.name ?? "Flowboard user"}</span>
                 </div>
               </div>
 
@@ -116,10 +116,10 @@ const IssueDetails = ({ issueId, open, onClose }: Props) => {
                 </div>
                 <div className="flex items-center gap-2">
                   <Avatar className="h-6 w-6 rounded-full border border-border/40">
-                    <AvatarImage src={issue?.creator?.user?.avatar} />
+                    <AvatarImage src={issue?.creator?.user?.avatar ?? "Flowboard user"} />
                     <AvatarFallback className="text-[10px]">{issue?.creator?.user?.name?.charAt(0).toUpperCase()}</AvatarFallback>
                   </Avatar>
-                  <span className="text-[12px]">{issue?.creator?.user?.name}</span>
+                  <span className="text-[12px]">{issue?.creator?.user?.name ?? "Flowboard user"}</span>
                 </div>
               </div>
 

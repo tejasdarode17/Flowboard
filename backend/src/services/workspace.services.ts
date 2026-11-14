@@ -6,7 +6,6 @@ import AppError from "../utils/AppError";
 import slugify from "slugify";
 import { deleteImageFromCloudinary, uploadImageToCloudinary } from '../utils/cloudinaryHandler';
 import { sendInviteEmail } from '../utils/mailer';
-import { createActivity } from './activites.services';
 import { enqueueNotification } from '../queues/notification/notification.queue';
 import { enqueueActivity } from '../queues/activity/activity.queue';
 
@@ -55,7 +54,8 @@ export async function createWorkspace(data: CreateWorkspaceInput, userId: string
 
 
   return { ...workspace, role: "OWNER" };
-};
+}
+
 
 
 export async function updateWorkspace(data: UpdateWorkspaceInput, workspaceId: string, memberId: string) {
@@ -140,6 +140,7 @@ export async function updateWorkspace(data: UpdateWorkspaceInput, workspaceId: s
 }
 
 
+
 export async function getWorkspaces(userId: string) {
 
   const memberships = await prisma.member.findMany({
@@ -165,7 +166,8 @@ export async function getWorkspaces(userId: string) {
   })
 
   return workspaces
-};
+}
+
 
 
 export async function getWorkspaceDetails(workspaceId: string) {
@@ -179,7 +181,8 @@ export async function getWorkspaceDetails(workspaceId: string) {
   }
 
   return workspace
-};
+}
+
 
 
 export async function deleteWorkspace(workspaceId: string) {
@@ -195,6 +198,8 @@ export async function deleteWorkspace(workspaceId: string) {
 
   await prisma.workspace.delete({ where: { id: workspaceId } });
 };
+
+
 
 
 // ----------------Members of workspace---------------------
@@ -216,7 +221,8 @@ export async function getMembersOfWorkspace(workspaceId: string) {
   })
 
   return members
-};
+}
+
 
 
 export async function inviteMember(workspaceId: string, email: string, role: Role) {
@@ -264,7 +270,8 @@ export async function inviteMember(workspaceId: string, email: string, role: Rol
   });
 
   return invite;
-};
+}
+
 
 
 export async function validateInviteToken(token: string) {
@@ -279,7 +286,8 @@ export async function validateInviteToken(token: string) {
   if (invite.expiresAt < new Date()) throw new AppError("Invite link expired", 400);
 
   return invite;
-};
+}
+
 
 
 export async function acceptWorkspaceInvite(token: string, userId: string) {
@@ -314,15 +322,15 @@ export async function acceptWorkspaceInvite(token: string, userId: string) {
         workspaceId: invite.workspaceId,
         role: invite.role,
       },
-    });
+    })
 
     await tx.workspaceInvite.update({
       where: { token },
       data: { accepted: true },
-    });
+    })
 
     return member;
-  });
+  })
 
 
   try {
@@ -429,23 +437,24 @@ export async function acceptWorkspaceInvite(token: string, userId: string) {
   return {
     workspaceId: invite.workspaceId,
     memberId: result.id,
-  };
+  }
 
-};
+}
+
 
 
 export async function removeMember(workspaceId: string, targetMemberId: string, actorMemberId: string) {
 
   const actor = await prisma.member.findUnique({
     where: { id: actorMemberId },
-  });
+  })
 
   const target = await prisma.member.findUnique({
     where: { id: targetMemberId },
     include: {
       user: true,
     },
-  });
+  })
 
   if (!actor || !target) {
     throw new AppError("Member not found", 404);
@@ -472,38 +481,36 @@ export async function removeMember(workspaceId: string, targetMemberId: string, 
     throw new AppError("Workspace owner cannot be removed", 403);
   }
 
-  await prisma.$transaction(async (tx) => {
+  await prisma.member.delete({
+    where: { id: target.id },
+  })
 
-    await tx.member.delete({
-      where: { id: target.id },
-    });
-
-    await createActivity({
+  try {
+    await enqueueActivity({
+      eventId: randomUUID(),
       workspaceId,
-
       actorId: actor.id,
-
       action: "MEMBER_REMOVED",
-
       entityType: "MEMBER",
       entityId: target.id,
       entityName: target.user.name,
-
       metadata: {
         removedBy: actor.id,
         removedMemberId: target.id,
         removedMemberName: target.user.name,
       },
-    }, tx)
-
-    return true;
-  });
+    })
+  } catch (error) {
+    console.error("Failed to enqueue activity", error)
+  }
 
   return {
     success: true,
     message: "Member removed successfully",
-  };
-};
+  }
+
+}
+
 
 
 export async function updateMemberRole(workspaceId: string, targetMemberId: string, actorMemberId: string, role: Role) {
@@ -518,7 +525,6 @@ export async function updateMemberRole(workspaceId: string, targetMemberId: stri
       user: true,
     },
   });
-
 
 
   if (!actor || !target) {
@@ -553,8 +559,6 @@ export async function updateMemberRole(workspaceId: string, targetMemberId: stri
     data: { role },
   });
 
-
-
   try {
     await enqueueActivity({
       eventId: randomUUID(),
@@ -570,34 +574,6 @@ export async function updateMemberRole(workspaceId: string, targetMemberId: stri
     console.error("Failed to enqueue activity", error);
   }
 
-  //notification
-  // try {
-  //   const notification = await createNotification({
-  //     memberId: target.id,
-  //     workspaceId,
-  //     title: "Role updated",
-  //     message: `Your role has been changed from ${oldRole} to ${role}`,
-
-  //     type: "MEMBER_ROLE_CHANGED",
-
-  //     entityId: target.id,
-  //     entityType: "MEMBER",
-
-  //     metadata: {
-  //       oldRole,
-  //       newRole: role,
-  //       changedByMemberId: actor.id,
-  //     }
-  //   });
-
-  //   emitToUser(target.user.id, "notification:new", notification)
-
-
-  // } catch (err) {
-  //   console.error("Notification failed", err);
-  // }
-
-  //notification bull mq 
   try {
     await enqueueNotification({
       eventId: randomUUID(),
@@ -632,4 +608,4 @@ export async function updateMemberRole(workspaceId: string, targetMemberId: stri
   }
 
   return updatedMember;
-};
+}

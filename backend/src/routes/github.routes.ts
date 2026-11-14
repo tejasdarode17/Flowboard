@@ -17,3 +17,4 @@ router.delete("/:workspaceSlug/project/:projectId", verifyAuth, requireWorkspace
 
 
 export default router;
+

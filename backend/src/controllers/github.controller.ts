@@ -65,6 +65,7 @@ export async function githubCallbackController(req: Request, res: Response, next
 
 export async function getGitHubRepositoriesController(req: Request, res: Response, next: NextFunction) {
     try {
+        
         const userId = req.user?.userId;
 
         if (!userId) {

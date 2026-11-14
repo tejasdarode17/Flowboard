@@ -5,7 +5,6 @@ import { emitToUser, emitToWorkspace } from "../../socket/socket";
 import { NotificationJobData } from "../../types/notification.types";
 
 
-// processor alag function hai, toh bina Redis ke test ho sakta hai
 export async function processNotification(job: Job<NotificationJobData>) {
 
     const { eventId, audience, payload } = job.data;

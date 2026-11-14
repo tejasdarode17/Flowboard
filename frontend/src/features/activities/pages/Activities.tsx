@@ -1,7 +1,6 @@
 import { useMemo, useState } from "react";
 import { useParams } from "react-router-dom";
 import { Loader2, Clock3 } from "lucide-react";
-
 import ActivityCard from "../components/ActivityCard";
 import ActivitySkeleton from "../components/ActivitySkeleton";
 import { useActivities } from "../hooks/useActivities";

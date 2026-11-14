@@ -9,6 +9,11 @@ import { createActivity } from "./activites.services";
 import { createNotification } from "./notification.services";
 import { ActivityAction } from "@prisma/client";
 import { emitToWorkspace } from "../socket/socket";
+import { enqueueActivity } from "../queues/activity/activity.queue";
+import { randomUUID } from "node:crypto";
+import { enqueueNotification } from "../queues/notification/notification.queue";
+
+
 
 export function getGithubAuthUrl(state: string) {
     const params = new URLSearchParams({
@@ -20,6 +25,7 @@ export function getGithubAuthUrl(state: string) {
 
     return `https://github.com/login/oauth/authorize?${params.toString()}`;
 }
+
 
 
 export async function handleGithubCallback(code: string, state: string) {
@@ -76,7 +82,9 @@ export async function handleGithubCallback(code: string, state: string) {
 }
 
 
+
 export async function getGithubRepositories(userId: string) {
+
 
     const githubAccount = await prisma.githubAccount.findUnique({
         where: { userId, },
@@ -106,6 +114,7 @@ export async function getGithubRepositories(userId: string) {
 }
 
 
+
 //this service used in linkRepositoryToProject not in controller
 export async function getExistingGithubWebhook(accessToken: string, repoFullName: string) {
 
@@ -125,6 +134,7 @@ export async function getExistingGithubWebhook(accessToken: string, repoFullName
 
     return existingWebhook;
 }
+
 
 
 //this service used in linkRepositoryToProject not in controller
@@ -159,6 +169,7 @@ export async function createGithubWebhook(accessToken: string, repoFullName: str
 
     return response.data;
 }
+
 
 
 export async function linkRepositoryToProject(projectId: string, repoId: string, repoFullName: string, userId: string) {
@@ -205,6 +216,7 @@ export async function linkRepositoryToProject(projectId: string, repoId: string,
 }
 
 
+
 export async function unlinkGithubAccount(userId: string) {
     const githubAccount = await prisma.githubAccount.findUnique({
         where: { userId },
@@ -212,6 +224,7 @@ export async function unlinkGithubAccount(userId: string) {
     if (!githubAccount) throw new AppError("GitHub account not connected", 400);
     await prisma.githubAccount.delete({ where: { userId } });
 }
+
 
 
 export async function unlinkRepositoryFromProject(projectId: string, userId: string) {
@@ -247,7 +260,6 @@ export async function unlinkRepositoryFromProject(projectId: string, userId: str
 
     await prisma.projectGithub.delete({ where: { projectId } });
 }
-
 
 
 
@@ -296,27 +308,32 @@ export async function processGitHubWebhook(event: GithubEvent, payload: GithubWe
     if (event === "push") {
         const push = payload as PushEvent;
 
-        await createActivity({
-            workspaceId,
-            projectId,
+        try {
+            await enqueueActivity({
+                eventId: randomUUID(),
+                workspaceId,
+                projectId,
 
-            actorId: member.id,
+                actorId: member.id,
 
-            action: "PUSH",
+                action: "PUSH",
 
-            entityType: "BRANCH",
-            entityId: push.ref,
-            entityName: push.ref.replace("refs/heads/", ""),
+                entityType: "BRANCH",
+                entityId: push.ref,
+                entityName: push.ref.replace("refs/heads/", ""),
 
-            metadata: {
-                repository: push.repository.full_name,
-                commitCount: push.commits.length,
-                commitMessage: push.head_commit?.message,
-                commitSha: push.head_commit?.id?.slice(0, 7),
-                commitUrl: push.head_commit?.url,
-                branch: push.ref.replace("refs/heads/", ""),
-            },
-        });
+                metadata: {
+                    repository: push.repository.full_name,
+                    commitCount: push.commits.length,
+                    commitMessage: push.head_commit?.message,
+                    commitSha: push.head_commit?.id?.slice(0, 7),
+                    commitUrl: push.head_commit?.url,
+                    branch: push.ref.replace("refs/heads/", ""),
+                },
+            });
+        } catch (error) {
+            console.error("Failed to enqueue activity", error)
+        }
 
         return;
     }
@@ -337,9 +354,10 @@ export async function processGitHubWebhook(event: GithubEvent, payload: GithubWe
             return;
         }
 
-        await prisma.$transaction(async (tx) => {
+        try {
             await createActivity(
                 {
+                    eventId: randomUUID(),
                     workspaceId,
                     projectId,
 
@@ -359,69 +377,41 @@ export async function processGitHubWebhook(event: GithubEvent, payload: GithubWe
                         targetBranch: pr.pull_request.base.ref,
                     },
                 },
-                tx
-            );
-        });
+            )
+        } catch (error) {
+            console.error("Failed to enqueue activity", error)
+        }
+
 
         if (action === "PR_MERGED") {
             try {
-                const members = await prisma.member.findMany({
-                    where: {
+                await enqueueNotification({
+                    eventId: randomUUID(),
+                    audience: {
+                        type: "workspace",
+                        workspaceId: workspaceId,
+                    },
+                    payload: {
                         workspaceId,
-                        NOT: {
-                            id: member.id,
+                        projectId,
+                        title: "Pull Request Merged",
+                        message: `${member.user.name} Merged Pull Request in ${projectGithub.project.name}`,
+
+                        type: "PR_MERGED",
+
+                        entityId: String(pr.number),
+                        entityType: "PULL_REQUEST",
+
+                        metadata: {
+                            url: pr.pull_request.html_url,
+                            prNumber: pr.number,
+                            mergedBy: member.id,
+                            mergedByName: member.user.name,
+                            repository: pr.repository.full_name,
+                            sourceBranch: pr.pull_request.head.ref,
+                            targetBranch: pr.pull_request.base.ref,
                         },
-                    },
-                });
-
-                await Promise.all(
-                    //inner map execute hoke [] dega. us array ke andar promises honge means db call functions
-                    members.map((m) =>
-                        createNotification({
-                            memberId: m.id,
-
-                            workspaceId,
-                            projectId,
-
-                            title: "Pull Request Merged",
-
-                            message: `${pr.pull_request.title} was merged`,
-
-                            type: "PR_MERGED",
-
-                            entityId: String(pr.number),
-                            entityType: "PULL_REQUEST",
-
-                            metadata: {
-                                number: pr.number,
-                                url: pr.pull_request.html_url,
-                                repository: pr.repository.full_name,
-                                sourceBranch: pr.pull_request.head.ref,
-                                targetBranch: pr.pull_request.base.ref,
-                            },
-                        })
-                    )
-                );
-
-                emitToWorkspace(workspaceId, "notification:new", {
-                    workspaceId: workspaceId,
-                    projectId,
-                    title: "Pull Request Merged",
-                    message: `${member.user.name} Merged Pull Request in ${projectGithub.project.name}`,
-
-                    type: "PR_MERGED",
-
-                    entityId: String(pr.number),
-                    entityType: "PULL_REQUEST",
-
-                    metadata: {
-                        url: pr.pull_request.html_url,
-                        prNumber: pr.number,
-                        mergedBy: member.id,
-                        mergedByName: member.user.name,
-                        sourceBranch: pr.pull_request.head.ref,
-                        targetBranch: pr.pull_request.base.ref,
-                    },
+                    }
                 })
 
             } catch (error) {
@@ -431,12 +421,12 @@ export async function processGitHubWebhook(event: GithubEvent, payload: GithubWe
 
         return;
     }
+
 }
 
 
-
 //if the owner disconncted himself forom the github we dont want to delete webhook cuz
-//there are still members who is creation events
+//there are still members who is creating events
 // export async function unlinkGithubAccount(userId: string) {
 //   const githubAccount = await prisma.githubAccount.findUnique({
 //     where: { userId },

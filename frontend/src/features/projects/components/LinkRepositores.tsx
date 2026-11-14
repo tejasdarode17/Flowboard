@@ -17,8 +17,10 @@ interface LinkRepositoresProps {
 const LinkRepository = ({ projectId }: LinkRepositoresProps) => {
   const [open, setOpen] = useState(false);
   const { workspaceSlug } = useParams();
-  const { data: repos, isLoading } = useGithubRepositories();
+  const { data: repos, isLoading, error } = useGithubRepositories(open);
   const { mutateAsync, isPending } = useLinkRepository(workspaceSlug!, projectId!);
+
+  console.log(error);
 
   async function handleLinkRepo(repoId: string, repoFullName: string) {
     try {
